@@ -44,10 +44,10 @@
 
   .tabs-wrap { padding:0 16px; margin-top:-14px; }
   .tabs { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--slate-100);
-    padding:4px; display:flex; gap:4px; }
-  .tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 6px;
-    border-radius:12px; font-size:13px; font-weight:500; border:none; background:transparent; color:var(--slate-500);
-    cursor:pointer; transition:all .15s; }
+    padding:4px; display:flex; gap:3px; }
+  .tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px;
+    border-radius:12px; font-size:12px; font-weight:500; border:none; background:transparent; color:var(--slate-500);
+    cursor:pointer; transition:all .15s; white-space:nowrap; min-width:0; }
   .tab-btn.active { background:var(--cyan-600); color:white; box-shadow:0 1px 2px rgba(0,0,0,.08); }
   .tab-btn:not(.active):hover { background:var(--slate-50); }
 
@@ -134,6 +134,41 @@
     font-family:inherit; padding:5px 10px; border-radius:999px; cursor:pointer; }
   .clear-btn:hover { background:var(--rose-50); color:var(--rose-700); border-color:var(--rose-200); }
 
+  /* Raspored održavanja (scheduler) */
+  .task-row { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--slate-100); }
+  .task-row:last-child { border-bottom:none; }
+  .task-main { flex:1; min-width:0; }
+  .task-label { font-size:14px; font-weight:500; color:var(--slate-800); }
+  .task-sub { font-size:11px; color:var(--slate-400); margin-top:2px; }
+  .task-status { font-size:11px; font-weight:600; margin-top:3px; }
+  .task-status.due-ok { color:var(--emerald-700); }
+  .task-status.due-soon { color:var(--amber-700); }
+  .task-status.due-over { color:var(--rose-700); }
+  .task-status.due-never { color:var(--violet-700); }
+  .task-btn { flex-shrink:0; border:1px solid var(--slate-200); background:white; color:var(--slate-700);
+    font-size:12px; font-weight:500; font-family:inherit; padding:7px 11px; border-radius:10px; cursor:pointer; }
+  .task-btn:hover { background:var(--emerald-50); color:var(--emerald-700); border-color:#a7f3d0; }
+  .task-btn:active { transform:scale(0.97); }
+  .task-undo { flex-shrink:0; border:none; background:transparent; color:var(--slate-300); cursor:pointer; padding:6px; font-size:13px; }
+  .task-undo:hover { color:var(--slate-500); }
+
+  /* Oprema */
+  .eq-legend { display:flex; gap:8px; flex-wrap:wrap; }
+  .eq-pill { font-size:11px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid; white-space:nowrap; }
+  .eq-pill.must { background:var(--rose-50); color:var(--rose-700); border-color:var(--rose-200); }
+  .eq-pill.rec  { background:var(--cyan-50); color:var(--cyan-700); border-color:#a5f3fc; }
+  .eq-pill.opt  { background:var(--slate-50); color:var(--slate-500); border-color:var(--slate-200); }
+  .eq-item { background:white; border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--slate-100);
+    padding:13px 14px; margin-bottom:10px; }
+  .eq-item.owned { border-color:#a7f3d0; background:var(--emerald-50); }
+  .eq-head { display:flex; align-items:flex-start; gap:10px; }
+  .eq-title { flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--slate-800); display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .eq-own-btn { flex-shrink:0; border:1px solid var(--slate-200); background:white; border-radius:10px; cursor:pointer;
+    font-size:12px; font-family:inherit; padding:6px 9px; color:var(--slate-500); }
+  .eq-item.owned .eq-own-btn { background:var(--emerald-500); color:white; border-color:var(--emerald-500); }
+  .eq-rec { font-size:12px; color:var(--cyan-700); margin-top:7px; font-weight:500; }
+  .eq-desc { font-size:12px; color:var(--slate-500); margin-top:4px; line-height:1.5; }
+
   .footnote { font-size:11px; color:var(--slate-400); text-align:center; margin-top:10px; }
 </style>
 </head>
@@ -147,9 +182,10 @@
 
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tab-btn" id="tab-startup" data-tab="startup" onclick="switchTab('startup')" style="display:none;">🚀 Punjenje</button>
+    <button class="tab-btn" id="tab-startup" data-tab="startup" onclick="switchTab('startup')" style="display:none;">🚀 Start</button>
     <button class="tab-btn active" data-tab="hemija" onclick="switchTab('hemija')">⚗️ Hemija</button>
-    <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Čišćenje</button>
+    <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Njega</button>
+    <button class="tab-btn" data-tab="oprema" onclick="switchTab('oprema')">🧰 Oprema</button>
     <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Historija</button>
   </div>
 </div>
@@ -206,13 +242,26 @@
 
     <div class="card">
       <div class="checklist-header">
-        <h2 style="margin:0;">Dnevni checklist</h2>
-        <span class="badge" id="checkBadge">0/9</span>
+        <h2 style="margin:0;">Raspored održavanja</h2>
+        <span class="badge" id="taskBadge">0 na čekanju</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="checkProgress"></div></div>
-      <div id="checklistRows"></div>
-      <p class="footnote">Checklist se resetuje svakog novog dana.</p>
+      <p class="hint">Klikni „Uradio" kad obaviš zadatak — aplikacija pamti datum i računa za koliko dana ide sljedeći put.</p>
+      <div id="taskRows"></div>
+      <p class="footnote">Zadaci se sortiraju po hitnosti (najkasniji prvi).</p>
     </div>
+  </div>
+
+  <div class="panel" id="panel-oprema">
+    <div class="card">
+      <h2>Potrebna oprema i hemija</h2>
+      <p class="hint">Označi 📦 ono što imaš. Svaka stavka ima preporuku i čemu služi.</p>
+      <div class="eq-legend">
+        <span class="eq-pill must">Obavezno</span>
+        <span class="eq-pill rec">Preporučeno</span>
+        <span class="eq-pill opt">Opcionalno</span>
+      </div>
+    </div>
+    <div id="equipmentList"></div>
   </div>
 
   <div class="panel" id="panel-historija">
@@ -241,16 +290,74 @@ const TARGETS = {
                   lowLabel: "Hladno", highLabel: "Toplo", okLabel: "Ugodno" },
 };
 
-const CHECKLIST_DEFS = [
-  { id: "skim",      icon: "🍃", label: "Skimanje površine (lišće, insekti)", freq: "Dnevno" },
-  { id: "test",      icon: "🧪", label: "Test vode (klor, pH, alkalinitet)", freq: "Dnevno" },
-  { id: "cover",     icon: "☀️", label: "Stavi/skini solarni pokrivač", freq: "Dnevno" },
-  { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", freq: "Dnevno" },
-  { id: "vacuum",    icon: "🌀", label: "Usisavanje dna bazena", freq: "2x sedmično" },
-  { id: "walls",     icon: "🧽", label: "Četkanje zidova i linije vode", freq: "Sedmično" },
-  { id: "backwash",  icon: "🔄", label: "Backwash pijeskanog filtera", freq: "Sedmično (manometar +0.2-0.3 bar)" },
-  { id: "shock",     icon: "⚡", label: "Šok hloriranje", freq: "Sedmično/po potrebi" },
-  { id: "sandcheck", icon: "🏖️", label: "Provjera/zamjena pijeska u filteru", freq: "Sezonski (1x godišnje)" },
+// interval = preporučeni razmak u danima između dva izvršenja
+const TASK_DEFS = [
+  { id: "skim",      icon: "🍃", label: "Skimanje površine", interval: 1,   freq: "Dnevno" },
+  { id: "test",      icon: "🧪", label: "Test vode (klor, pH, TA)", interval: 1,   freq: "Dnevno" },
+  { id: "cover",     icon: "☀️", label: "Solarni pokrivač (stavi/skini)", interval: 1,   freq: "Dnevno" },
+  { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", interval: 2,   freq: "Svaki 2. dan" },
+  { id: "vacuum",    icon: "🌀", label: "Usisavanje dna bazena", interval: 4,   freq: "2x sedmično" },
+  { id: "walls",     icon: "🧽", label: "Četkanje zidova i linije vode", interval: 7,   freq: "Sedmično" },
+  { id: "backwash",  icon: "🔄", label: "Backwash filtera", interval: 7,   freq: "Sedmično / kad manometar +0.2–0.3 bar" },
+  { id: "shock",     icon: "⚡", label: "Šok hloriranje", interval: 10,  freq: "Sedmično / po potrebi" },
+  { id: "sandcheck", icon: "🏖️", label: "Zamjena pijeska u filteru", interval: 1095, freq: "Svake 3 sezone" },
+];
+
+const EQUIPMENT = [
+  { icon:"💨", name:"Pješčana filter pumpa", level:"must",
+    rec:"Imaš (4500 l/h) — protok ok za 17 m³.",
+    desc:"Srce sistema: gura vodu kroz pijesak i hvata sitne čestice. Pusti je da pokrije bar 1.5–2 kruga vode dnevno." },
+  { icon:"🏖️", name:"Kvarcni pijesak za filter", level:"must",
+    rec:"Granulacija 0.4–0.8 mm, ~25 kg po punjenju.",
+    desc:"Medij u filteru koji mehanički zadržava nečistoću. Mijenja se svake 2–3 sezone jer zrnca s vremenom otupe." },
+  { icon:"🧪", name:"Test komplet (trake ili foto-metar)", level:"must",
+    rec:"Trake 5-u-1 za svaki dan; tečni DPD test za precizno.",
+    desc:"Bez mjerenja doziraš naslijepo. Prati klor, pH, alkalinitet i stabilizator." },
+  { icon:"🧴", name:"Klor (granule ili tablete)", level:"must",
+    rec:"Dihlor granule za dnevno; trihlor tablete za sporo otpuštanje.",
+    desc:"Dezinfekcija — uništava bakterije i alge. Održavaj 1–3 mg/l slobodnog klora." },
+  { icon:"⬇️", name:"pH minus i pH plus", level:"must",
+    rec:"pH− (natrij-bisulfat) skoro uvijek; pH+ rijetko.",
+    desc:"Drži pH u 7.2–7.6. Previsok pH smanjuje djelovanje klora i stvara kamenac." },
+  { icon:"🛡️", name:"Stabilizator (CYA / cijanurna kiselina)", level:"must",
+    rec:"Do ~30–50 mg/l; kod tableta već je ugrađen.",
+    desc:"Štiti klor od UV zraka da ga sunce ne razgradi za par sati." },
+  { icon:"➕", name:"Alkalinitet plus (soda bikarbona)", level:"rec",
+    rec:"Obična soda bikarbona; podiže TA u 80–120 mg/l.",
+    desc:"Stabilizuje pH — bez dovoljno TA pH zna naglo skakati gore-dolje." },
+  { icon:"🥅", name:"Skimmer mrežica na štapu", level:"must",
+    rec:"Fina mrežica + teleskopski štap.",
+    desc:"Skida lišće, insekte i polen s površine prije nego potonu i zagade vodu." },
+  { icon:"🧽", name:"Četka za zidove i dno", level:"rec",
+    rec:"Četka širine ~45 cm s nastavkom za štap.",
+    desc:"Skida sluzavi film i alge sa zidova i linije vode da se ne nakupljaju." },
+  { icon:"🌀", name:"Usisivač za dno (vacuum)", level:"rec",
+    rec:"Ručni vacuum + crijevo, ili automatski čistač.",
+    desc:"Skuplja talog, pijesak i sitne čestice koje padnu na dno bazena." },
+  { icon:"📏", name:"Teleskopski štap", level:"rec",
+    rec:"Aluminijski, izvlači se do ~3–4 m.",
+    desc:"Univerzalni nosač za mrežicu, četku i usisivač." },
+  { icon:"☀️", name:"Solarni pokrivač (cerada)", level:"rec",
+    rec:"Mjehurasti pokrivač skrojen za 549×274 cm.",
+    desc:"Zadržava toplinu noću, smanjuje isparavanje vode i potrošnju hemije te drži nečistoću vani." },
+  { icon:"🎯", name:"Plovak-dozator za tablete", level:"opt",
+    rec:"Plutajući dozator s podesivim otvorima.",
+    desc:"Postepeno otpušta klor tablete za ravnomjeran nivo klora bez dnevnog doziranja." },
+  { icon:"🌡️", name:"Termometar za vodu", level:"opt",
+    rec:"Plutajući; topla voda = brža potrošnja klora.",
+    desc:"Iznad ~28 °C klor se brže troši i alge rastu brže — znaš kad pojačati tretman." },
+  { icon:"💧", name:"Flokulant / bistrač (clarifier)", level:"opt",
+    rec:"Po potrebi kad je voda mutna.",
+    desc:"Spaja sitne lebdeće čestice u veće da ih filter lakše uhvati." },
+  { icon:"🦠", name:"Algicid (sredstvo protiv algi)", level:"opt",
+    rec:"Preventivno sedmično ili kod zelene vode.",
+    desc:"Sprječava i suzbija alge, posebno po vrućini, kao dopuna kloru." },
+  { icon:"🩹", name:"Komplet zakrpa za PVC", level:"opt",
+    rec:"Podvodne zakrpe + ljepilo.",
+    desc:"Brza popravka uboda ili rupice na zidu bazena bez pražnjenja." },
+  { icon:"❄️", name:"Set za prezimljavanje", level:"opt",
+    rec:"Zimski preparat + čepovi/zaštita.",
+    desc:"Ako ne praznite bazen preko zime — sprječava alge i štiti opremu od mraza." },
 ];
 
 const STARTUP_DEFS = [
@@ -290,7 +397,8 @@ function calcCyaDose(current, target) {
 }
 
 let readings = { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" };
-let checklist = {};
+let tasksDone = {};   // { taskId: ISO datum zadnjeg izvršenja }
+let equipOwned = {};  // { equipmentName: true }
 let startup = {};
 let history = [];
 
@@ -406,31 +514,108 @@ function renderDoses() {
   `).join("");
 }
 
-function renderChecklist() {
-  const wrap = document.getElementById("checklistRows");
+const DAY_MS = 86400000;
+
+function daysBetween(fromISO, to) {
+  // cijeli dani od kalendarskog datuma izvršenja do danas
+  const a = new Date(fromISO); a.setHours(0, 0, 0, 0);
+  const b = new Date(to);      b.setHours(0, 0, 0, 0);
+  return Math.round((b - a) / DAY_MS);
+}
+
+// Procjena statusa zadatka: kada je zadnji put urađen i za koliko dana ide sljedeći.
+function taskStatus(item) {
+  const last = tasksDone[item.id];
+  if (!last) {
+    return { cls: "due-never", text: "Još nije urađeno", due: -9999, last: null };
+  }
+  const since = daysBetween(last, new Date());
+  const remaining = item.interval - since;
+  let cls, text;
+  if (remaining > 1)       { cls = "due-ok";   text = `Sljedeći put za ${remaining} dana`; }
+  else if (remaining === 1){ cls = "due-ok";   text = "Sljedeći put sutra"; }
+  else if (remaining === 0){ cls = "due-soon"; text = "Treba uraditi danas"; }
+  else                     { cls = "due-over"; text = `Kasni ${Math.abs(remaining)} ${Math.abs(remaining) === 1 ? "dan" : "dana"}`; }
+  return { cls, text, due: remaining, last };
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString("bs-BA", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function renderTasks() {
+  const wrap = document.getElementById("taskRows");
   wrap.innerHTML = "";
-  CHECKLIST_DEFS.forEach((item) => {
-    const done = !!checklist[item.id];
-    const btn = document.createElement("button");
-    btn.className = "check-item" + (done ? " done" : "");
-    btn.innerHTML = `
-      <span class="check-icon">${done ? "✅" : "⬜️"}</span>
-      <div>
-        <div class="check-label">${item.icon} ${item.label}</div>
-        <div class="check-freq">${item.freq}</div>
+
+  const rows = TASK_DEFS.map((item) => ({ item, st: taskStatus(item) }));
+  // sortiraj po hitnosti: najkasniji / nikad urađeni prvi
+  rows.sort((a, b) => a.st.due - b.st.due);
+
+  rows.forEach(({ item, st }) => {
+    const row = document.createElement("div");
+    row.className = "task-row";
+    const sub = st.last
+      ? `${item.freq} · zadnji put ${fmtDate(st.last)}`
+      : `${item.freq}`;
+    row.innerHTML = `
+      <div class="task-main">
+        <div class="task-label">${item.icon} ${item.label}</div>
+        <div class="task-sub">${sub}</div>
+        <div class="task-status ${st.cls}">${st.last ? "📅 " : "🆕 "}${st.text}</div>
+      </div>
+      ${st.last ? `<button class="task-undo" title="Poništi zadnje">↩︎</button>` : ""}
+      <button class="task-btn">✓ Uradio</button>
+    `;
+    row.querySelector(".task-btn").addEventListener("click", () => markTaskDone(item.id));
+    const undo = row.querySelector(".task-undo");
+    if (undo) undo.addEventListener("click", () => undoTask(item.id));
+    wrap.appendChild(row);
+  });
+
+  const pending = rows.filter(r => r.st.due <= 0).length;
+  document.getElementById("taskBadge").textContent =
+    pending === 0 ? "Sve na vrijeme ✓" : `${pending} na čekanju`;
+}
+
+async function markTaskDone(id) {
+  tasksDone[id] = new Date().toISOString();
+  await saveKey("pool:tasks:done", tasksDone);
+  renderTasks();
+}
+
+async function undoTask(id) {
+  delete tasksDone[id];
+  await saveKey("pool:tasks:done", tasksDone);
+  renderTasks();
+}
+
+function renderEquipment() {
+  const wrap = document.getElementById("equipmentList");
+  const levelLabel = { must: "Obavezno", rec: "Preporučeno", opt: "Opcionalno" };
+  wrap.innerHTML = EQUIPMENT.map((e) => {
+    const owned = !!equipOwned[e.name];
+    return `
+      <div class="eq-item ${owned ? "owned" : ""}" data-name="${e.name.replace(/"/g, "&quot;")}">
+        <div class="eq-head">
+          <div class="eq-title">${e.icon} ${e.name} <span class="eq-pill ${e.level}">${levelLabel[e.level]}</span></div>
+          <button class="eq-own-btn">${owned ? "📦 Imam" : "Nemam"}</button>
+        </div>
+        <div class="eq-rec">👉 ${e.rec}</div>
+        <div class="eq-desc">${e.desc}</div>
       </div>
     `;
-    btn.addEventListener("click", () => {
-      checklist[item.id] = !checklist[item.id];
-      saveKey("pool:checklist:state", checklist);
-      renderChecklist();
-    });
-    wrap.appendChild(btn);
+  }).join("");
+
+  wrap.querySelectorAll(".eq-item").forEach((el) => {
+    el.querySelector(".eq-own-btn").addEventListener("click", () => toggleEquip(el.dataset.name));
   });
-  const done = Object.values(checklist).filter(Boolean).length;
-  document.getElementById("checkBadge").textContent = `${done}/${CHECKLIST_DEFS.length}`;
-  document.getElementById("checkProgress").style.width =
-    Math.round((done / CHECKLIST_DEFS.length) * 100) + "%";
+}
+
+async function toggleEquip(name) {
+  if (equipOwned[name]) delete equipOwned[name];
+  else equipOwned[name] = true;
+  await saveKey("pool:equipment:owned", equipOwned);
+  renderEquipment();
 }
 
 function renderStartup() {
@@ -550,6 +735,11 @@ async function logReading() {
   renderHistory();
   updateStartupVisibility();
 
+  // Spremanje mjerenja = test vode je obavljen → zabilježi i u rasporedu.
+  tasksDone["test"] = new Date().toISOString();
+  await saveKey("pool:tasks:done", tasksDone);
+  renderTasks();
+
   const btn = document.getElementById("saveBtn");
   const original = btn.textContent;
   btn.textContent = "✓ Sačuvano u historiju!";
@@ -566,21 +756,14 @@ function switchTab(tab) {
   readings = await loadKey("pool:readings", { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" });
   history = await loadKey("pool:history", []);
   startup = await loadKey("pool:startup:state", {});
-
-  const savedDate = await loadKey("pool:checklist:date", null);
-  const today = todayISO();
-  if (savedDate === today) {
-    checklist = await loadKey("pool:checklist:state", {});
-  } else {
-    checklist = {};
-    await saveKey("pool:checklist:date", today);
-    await saveKey("pool:checklist:state", checklist);
-  }
+  tasksDone = await loadKey("pool:tasks:done", {});
+  equipOwned = await loadKey("pool:equipment:owned", {});
 
   renderStaticInfo();
   renderParamRows();
   renderDoses();
-  renderChecklist();
+  renderTasks();
+  renderEquipment();
   renderStartup();
   renderStartupDoses();
   renderHistory();
