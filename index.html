@@ -179,6 +179,18 @@
 
   .footnote { font-size:11px; color:var(--slate-400); text-align:center; margin-top:10px; }
 
+  /* Instalacija aplikacije */
+  .install-bar { display:none; margin:10px 16px 0; max-width:480px; margin-left:auto; margin-right:auto;
+    background:var(--slate-900); color:white; border-radius:12px; padding:10px 14px; font-size:13px;
+    align-items:center; gap:10px; justify-content:space-between; box-shadow:0 3px 10px rgba(0,0,0,.18); }
+  .install-bar.show { display:flex; }
+  .install-bar span { line-height:1.4; }
+  .install-bar span b { color:#a5f3fc; }
+  .install-bar .ib-actions { display:flex; gap:6px; flex-shrink:0; }
+  .install-bar button { border:none; background:var(--cyan-600); color:white; font-weight:600;
+    font-size:13px; font-family:inherit; padding:7px 13px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+  .install-bar button.ghost { background:transparent; color:var(--slate-400); padding:7px 8px; }
+
   /* Prijedlog temperature vode */
   .temp-suggest { font-size:11px; color:var(--cyan-700); margin-top:5px; }
   .temp-suggest button { border:none; background:transparent; color:var(--cyan-700); text-decoration:underline;
@@ -256,6 +268,7 @@
 </div>
 
 <div id="wxAlert" class="wx-alert" onclick="switchTab('vrijeme')"></div>
+<div id="installBar" class="install-bar"></div>
 
 <div class="content">
 
@@ -1322,6 +1335,68 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW registration failed", e));
   });
 }
+
+/* ---------------- Instalacija (Add to Home Screen) ---------------- */
+let deferredPrompt = null;
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function hideInstallBar() {
+  document.getElementById("installBar").classList.remove("show");
+}
+
+function showInstallAndroid() {
+  if (isStandalone()) return;
+  const bar = document.getElementById("installBar");
+  bar.innerHTML = `<span>📲 Instaliraj „Moj bazen" na početni ekran</span>
+    <span class="ib-actions">
+      <button id="installBtn">Instaliraj</button>
+      <button class="ghost" id="installLater">×</button>
+    </span>`;
+  bar.classList.add("show");
+  document.getElementById("installBtn").addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    hideInstallBar();
+    deferredPrompt.prompt();
+    try { await deferredPrompt.userChoice; } catch {}
+    deferredPrompt = null;
+  });
+  document.getElementById("installLater").addEventListener("click", hideInstallBar);
+}
+
+async function showInstallIOS() {
+  if (isStandalone()) return;
+  if (await loadKey("pool:iosHintDismissed", false)) return;
+  const bar = document.getElementById("installBar");
+  bar.innerHTML = `<span>📲 Dodaj na ekran: dodirni <b>Podijeli</b> ⎋ pa <b>„Na početni ekran"</b></span>
+    <span class="ib-actions"><button class="ghost" id="installLater">U redu</button></span>`;
+  bar.classList.add("show");
+  document.getElementById("installLater").addEventListener("click", () => {
+    hideInstallBar();
+    saveKey("pool:iosHintDismissed", true);
+  });
+}
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();      // spriječi automatski mini-infobar
+  deferredPrompt = e;
+  showInstallAndroid();    // prikaži naše dugme
+});
+window.addEventListener("appinstalled", () => {
+  deferredPrompt = null;
+  hideInstallBar();
+});
+
+function initInstall() {
+  if (isStandalone()) return;          // već instalirano — ništa
+  if (isIOS()) showInstallIOS();       // iOS nema beforeinstallprompt → upute
+  // Android/desktop: čeka se 'beforeinstallprompt' event
+}
+initInstall();
 </script>
 
 </body>
