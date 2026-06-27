@@ -178,6 +178,14 @@
   .eq-desc { font-size:12px; color:var(--slate-500); margin-top:4px; line-height:1.5; }
 
   .footnote { font-size:11px; color:var(--slate-400); text-align:center; margin-top:10px; }
+
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%) translateY(8px);
+    background:var(--slate-900); color:white; border-radius:12px; padding:11px 16px; display:flex; align-items:center;
+    gap:16px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.25); z-index:50; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; max-width:90vw; }
+  .toast.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+  .toast button { background:transparent; border:none; color:#67e8f9; font-weight:600; font-size:13px;
+    font-family:inherit; cursor:pointer; white-space:nowrap; padding:0; }
 </style>
 </head>
 <body>
@@ -285,6 +293,8 @@
   </div>
 
 </div>
+
+<div id="toast" class="toast"></div>
 
 <script>
 const POOL_VOLUME_L = 17203;
@@ -600,16 +610,51 @@ function renderDueBanner(rows) {
     `⚠️ <b>${due.length}</b> ${due.length === 1 ? "zadatak" : "zadataka"} čeka na tebe: ${names}${due.length > 4 ? "…" : ""}`;
 }
 
+let tasksPrev = {}; // prethodna vrijednost po zadatku, za poništavanje
+
 async function markTaskDone(id) {
+  tasksPrev[id] = tasksDone[id] ?? null; // zapamti staro stanje (datum ili "nikad")
   tasksDone[id] = new Date().toISOString();
   await saveKey("pool:tasks:done", tasksDone);
   renderTasks();
+  const item = TASK_DEFS.find(t => t.id === id);
+  showToast(`✓ ${item ? item.label : "Zadatak"} — označeno kao urađeno`, "Poništi", () => undoTask(id));
 }
 
 async function undoTask(id) {
-  delete tasksDone[id];
+  if (id in tasksPrev) {
+    // vrati na prethodni datum (ili na "nikad urađeno" ako prije nije bilo)
+    if (tasksPrev[id]) tasksDone[id] = tasksPrev[id];
+    else delete tasksDone[id];
+    delete tasksPrev[id];
+  } else {
+    delete tasksDone[id]; // ručni ↩︎ bez zapamćene prethodne vrijednosti
+  }
   await saveKey("pool:tasks:done", tasksDone);
   renderTasks();
+  hideToast();
+}
+
+let toastTimer = null;
+function showToast(msg, actionLabel, actionFn, ms = 6000) {
+  const el = document.getElementById("toast");
+  el.innerHTML = "";
+  const span = document.createElement("span");
+  span.textContent = msg;
+  el.appendChild(span);
+  if (actionLabel) {
+    const btn = document.createElement("button");
+    btn.textContent = "↩︎ " + actionLabel;
+    btn.addEventListener("click", () => { actionFn && actionFn(); });
+    el.appendChild(btn);
+  }
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  document.getElementById("toast").classList.remove("show");
 }
 
 function renderEquipment() {
