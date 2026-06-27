@@ -44,10 +44,11 @@
 
   .tabs-wrap { padding:0 16px; margin-top:-14px; }
   .tabs { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--slate-100);
-    padding:4px; display:flex; gap:3px; }
-  .tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px;
+    padding:4px; display:flex; gap:3px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab-btn { flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 12px;
     border-radius:12px; font-size:12px; font-weight:500; border:none; background:transparent; color:var(--slate-500);
-    cursor:pointer; transition:all .15s; white-space:nowrap; min-width:0; }
+    cursor:pointer; transition:all .15s; white-space:nowrap; }
   .tab-btn.active { background:var(--cyan-600); color:white; box-shadow:0 1px 2px rgba(0,0,0,.08); }
   .tab-btn:not(.active):hover { background:var(--slate-50); }
 
@@ -196,6 +197,49 @@
   .temp-suggest button { border:none; background:transparent; color:var(--cyan-700); text-decoration:underline;
     font-size:11px; font-family:inherit; cursor:pointer; padding:0; font-weight:600; }
 
+  /* Dashboard "Danas" */
+  .dash-wx { display:flex; align-items:center; gap:12px; }
+  .dash-wx .dwx-ico { font-size:34px; line-height:1; }
+  .dash-wx .dwx-temp { font-size:24px; font-weight:700; color:var(--slate-800); }
+  .dash-wx .dwx-sub { font-size:12px; color:var(--slate-500); }
+  .dash-task { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--slate-100); }
+  .dash-task:last-child { border-bottom:none; }
+  .dash-task .dt-main { flex:1; min-width:0; }
+  .dash-task .dt-label { font-size:13px; font-weight:500; color:var(--slate-800); }
+  .dash-task .dt-status { font-size:11px; font-weight:600; margin-top:1px; }
+  .dash-task .dt-status.over { color:var(--rose-700); }
+  .dash-task .dt-status.soon { color:var(--amber-700); }
+  .dash-task button { flex-shrink:0; border:1px solid var(--slate-200); background:white; color:var(--slate-700);
+    font-size:12px; font-weight:500; font-family:inherit; padding:6px 10px; border-radius:9px; cursor:pointer; }
+  .dash-task button:hover { background:var(--emerald-50); color:var(--emerald-700); border-color:#a7f3d0; }
+  .dash-ok { font-size:13px; color:var(--emerald-700); padding:4px 0; }
+  .dash-w-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0;
+    border-bottom:1px solid var(--slate-100); }
+  .dash-w-row:last-child { border-bottom:none; }
+  .dash-w-row .dw-l { font-size:13px; color:var(--slate-700); }
+  .dash-w-row .dw-v { font-size:13px; font-weight:600; color:var(--slate-800); }
+  .dash-w-act { font-size:11px; color:var(--amber-700); margin-top:1px; }
+
+  /* Trend grafovi */
+  .trend { margin-bottom:14px; }
+  .trend:last-child { margin-bottom:0; }
+  .trend-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:3px; }
+  .trend-name { font-size:12px; font-weight:600; color:var(--slate-700); }
+  .trend-last { font-size:12px; color:var(--slate-500); }
+  .spark { width:100%; height:64px; display:block; background:var(--slate-50); border-radius:10px; }
+
+  /* Kalkulator doza */
+  .calc { margin-top:12px; }
+  .calc select, .calc input { font-family:inherit; font-size:14px; border:1px solid var(--slate-200); border-radius:10px;
+    padding:8px 10px; background:white; }
+  .calc select { width:100%; }
+  .calc-row { display:flex; gap:10px; margin-top:10px; }
+  .calc-row label { flex:1; font-size:11px; color:var(--slate-500); display:flex; flex-direction:column; gap:4px; }
+  .calc-row input { width:100%; text-align:right; }
+  .calc-result { margin-top:12px; background:var(--cyan-50); border:1px solid #a5f3fc; color:var(--cyan-700);
+    border-radius:12px; padding:11px 13px; font-size:13px; line-height:1.5; }
+  .calc-result b { font-size:18px; }
+
   /* Sklopive sekcije (vodiči) */
   .guide > summary { font-size:14px; font-weight:600; color:var(--slate-700); cursor:pointer; list-style:none;
     display:flex; align-items:center; gap:6px; }
@@ -259,6 +303,7 @@
 <div class="tabs-wrap">
   <div class="tabs">
     <button class="tab-btn" id="tab-startup" data-tab="startup" onclick="switchTab('startup')" style="display:none;">🚀 Start</button>
+    <button class="tab-btn" data-tab="danas" onclick="switchTab('danas')">🏠 Danas</button>
     <button class="tab-btn active" data-tab="hemija" onclick="switchTab('hemija')">⚗️ Hemija</button>
     <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Njega</button>
     <button class="tab-btn" data-tab="oprema" onclick="switchTab('oprema')">🧰 Oprema</button>
@@ -271,6 +316,19 @@
 <div id="installBar" class="install-bar"></div>
 
 <div class="content">
+
+  <div class="panel" id="panel-danas">
+    <div id="dashWeather"></div>
+    <div class="card">
+      <h2 style="margin:0 0 10px;">✅ Šta danas treba</h2>
+      <div id="dashTasks"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 4px;">💧 Stanje vode</h2>
+      <p class="hint" id="dashWaterWhen">Zadnje mjerenje</p>
+      <div id="dashWater"></div>
+    </div>
+  </div>
 
   <div class="panel" id="panel-startup">
     <div class="card" style="background:linear-gradient(to bottom right, var(--cyan-50), white); border-color:#a5f3fc;">
@@ -315,6 +373,25 @@
         <div id="chemList"></div>
         <div class="warn-box" style="margin-top:14px;">
           🧤 <span>Sigurnost: dodaj sredstvo u vodu (nikad vodu u sredstvo), prvo razmuti u kanti, doziraj uz upaljenu pumpu i najbolje predvečer. Nikad ne miješaj različita sredstva međusobno (posebno klor + kiselinu).</span>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details id="calcGuide" class="guide">
+        <summary>🧮 Kalkulator doza — „imam X, hoću Y"</summary>
+        <div class="calc">
+          <select id="calcMetric">
+            <option value="cl">Slobodni klor (mg/l)</option>
+            <option value="ph">pH vrijednost</option>
+            <option value="ta">Alkalinitet TA (mg/l)</option>
+            <option value="cya">Stabilizator CYA (mg/l)</option>
+          </select>
+          <div class="calc-row">
+            <label>Trenutno <input type="number" step="0.1" inputmode="decimal" id="calcCur" placeholder="—"></label>
+            <label>Cilj <input type="number" step="0.1" inputmode="decimal" id="calcTgt" placeholder="—"></label>
+          </div>
+          <div id="calcResult" class="calc-result">Unesi vrijednosti…</div>
         </div>
       </details>
     </div>
@@ -397,6 +474,11 @@
   </div>
 
   <div class="panel" id="panel-historija">
+    <div class="card" id="trendsCard" style="display:none;">
+      <h2 style="margin:0 0 4px;">📈 Trendovi</h2>
+      <p class="hint">Zasjenjeno polje = ciljani raspon.</p>
+      <div id="trendsList"></div>
+    </div>
     <div class="card">
       <div class="hist-header">
         <h2 style="margin:0;">Historija mjerenja</h2>
@@ -686,6 +768,8 @@ function renderDoses() {
       <div class="dn">${c.note}</div>
     </div>
   `).join("");
+
+  if (typeof renderDashboard === "function") renderDashboard();
 }
 
 // Detaljan vodič kroz sredstva (doze računate za POOL_VOLUME_M3 ≈ 17.2 m³).
@@ -819,6 +903,7 @@ function renderTasks() {
 
   renderDueBanner(rows);
   syncReminderState();
+  if (typeof renderDashboard === "function") renderDashboard();
 }
 
 function renderDueBanner(rows) {
@@ -1161,6 +1246,7 @@ function renderWeather(w, stale) {
 
   renderTempSuggestion(); // osvježi prijedlog temperature vode iz vremena
   maybeNotifyWeather(advice);
+  if (typeof renderDashboard === "function") renderDashboard();
 }
 
 async function refreshWeather() {
@@ -1254,6 +1340,7 @@ function updateStartupVisibility() {
 }
 
 function renderHistory() {
+  renderTrends();
   const wrap = document.getElementById("historyList");
   const clearBtn = document.getElementById("clearHistBtn");
   if (history.length === 0) {
@@ -1322,6 +1409,169 @@ async function logReading() {
   setTimeout(() => { btn.textContent = original; btn.classList.remove("saved"); }, 1600);
 }
 
+/* ---------------- Dashboard "Danas" ---------------- */
+function renderDashboard() {
+  const dw = document.getElementById("dashWeather");
+  if (weather && weather.current) {
+    const cur = weather.current;
+    const [ico, cond] = wmo(cur.weather_code ?? 0);
+    const advice = buildWeatherAdvice(weather);
+    const top = advice.find(a => a.level === "alert") || advice.find(a => a.level === "warn") || advice[0];
+    const lvl = "wx-advice-item " + (top.level || "info");
+    dw.innerHTML = `
+      <div class="card">
+        <div class="dash-wx" onclick="switchTab('vrijeme')" style="cursor:pointer;">
+          <div class="dwx-ico">${ico}</div>
+          <div><div class="dwx-temp">${Math.round(cur.temperature_2m)}°C</div>
+          <div class="dwx-sub">${cond} · Bosanska Krupa</div></div>
+        </div>
+        <div class="${lvl}" style="margin-top:10px;"><span class="ai">${top.icon}</span><span>${top.text}</span></div>
+      </div>`;
+  } else { dw.innerHTML = ""; }
+
+  const dt = document.getElementById("dashTasks");
+  const due = TASK_DEFS.map(t => ({ t, st: taskStatus(t) })).filter(x => x.st.due <= 0).sort((a, b) => a.st.due - b.st.due);
+  if (due.length === 0) {
+    dt.innerHTML = `<div class="dash-ok">✓ Sve je na vrijeme — danas nema zaostalih zadataka.</div>`;
+  } else {
+    dt.innerHTML = due.map(({ t, st }) => `
+      <div class="dash-task" data-id="${t.id}">
+        <div class="dt-main">
+          <div class="dt-label">${t.icon} ${t.label}</div>
+          <div class="dt-status ${st.due < 0 ? "over" : "soon"}">${st.text}</div>
+        </div>
+        <button>✓ Uradio</button>
+      </div>`).join("");
+    dt.querySelectorAll(".dash-task").forEach(el =>
+      el.querySelector("button").addEventListener("click", () => markTaskDone(el.dataset.id)));
+  }
+
+  const wcard = document.getElementById("dashWater");
+  const when = document.getElementById("dashWaterWhen");
+  const keys = ["freeChlorine", "ph", "alkalinity", "cya"];
+  const hasAny = keys.some(k => readings[k] !== "" && readings[k] != null);
+  if (!hasAny) {
+    when.textContent = "Nema unesenih vrijednosti";
+    wcard.innerHTML = `<div class="dash-ok" style="color:var(--slate-500)">Unesi mjerenja u tabu <b>Hemija</b>.</div>`;
+  } else {
+    const last = history[0];
+    when.textContent = last
+      ? "Zadnje sačuvano: " + new Date(last.date).toLocaleDateString("bs-BA", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })
+      : "Trenutne vrijednosti";
+    wcard.innerHTML = keys.map(k => {
+      const t = TARGETS[k], raw = readings[k];
+      if (raw === "" || raw == null) return "";
+      const v = parseFloat(raw);
+      let state = "ok", txt = "U redu", act = "";
+      if (v < t.min) { state = "low"; txt = "Nisko"; act = dashAction(k, "low"); }
+      else if (v > t.max) { state = "high"; txt = "Visoko"; act = dashAction(k, "high"); }
+      return `<div class="dash-w-row">
+        <div><div class="dw-l">${t.label}</div>${act ? `<div class="dash-w-act">${act}</div>` : ""}</div>
+        <div style="text-align:right"><span class="dw-v">${raw}${t.unit ? (" " + t.unit) : ""}</span> <span class="pill ${state}">${txt}</span></div>
+      </div>`;
+    }).join("");
+  }
+}
+
+function dashAction(key, dir) {
+  const cl = parseFloat(readings.freeChlorine), ph = parseFloat(readings.ph),
+        ta = parseFloat(readings.alkalinity), cy = parseFloat(readings.cya);
+  if (key === "freeChlorine" && dir === "low") { const g = calcChlorineDose(cl, TARGETS.freeChlorine.min + 0.5); return g > 0 ? `→ dodaj ~${g} g klora` : ""; }
+  if (key === "ph" && dir === "high") { const g = calcPhMinusDose(ph, 7.4); return g > 0 ? `→ dodaj ~${g} g pH minus` : ""; }
+  if (key === "ph" && dir === "low") { const g = calcPhPlusDose(ph, 7.4); return g > 0 ? `→ dodaj ~${g} g pH plus` : ""; }
+  if (key === "alkalinity" && dir === "low") { const g = calcAlkalinityDose(ta, 100); return g > 0 ? `→ dodaj ~${g} g alkalinitet+` : ""; }
+  if (key === "cya" && dir === "low") { const g = calcCyaDose(cy, 40); return g > 0 ? `→ dodaj ~${g} g stabilizatora` : ""; }
+  if (dir === "high") return "iznad cilja — pada razrjeđivanjem vode";
+  return "";
+}
+
+/* ---------------- Trend grafovi ---------------- */
+function renderTrends() {
+  const card = document.getElementById("trendsCard");
+  const list = document.getElementById("trendsList");
+  const chrono = history.slice().reverse();
+  const metrics = [
+    { key:"freeChlorine", color:"#0891b2", name:"Klor (mg/l)" },
+    { key:"ph",           color:"#6d28d9", name:"pH" },
+    { key:"alkalinity",   color:"#0f766e", name:"Alkalinitet (mg/l)" },
+    { key:"temperature",  color:"#b45309", name:"Temperatura (°C)" },
+  ];
+  let html = "";
+  metrics.forEach(m => {
+    const series = chrono.map(e => { const v = parseFloat(e[m.key]); return isNaN(v) ? null : v; });
+    if (series.filter(v => v != null).length >= 2) html += buildTrend(series, TARGETS[m.key], m);
+  });
+  if (html) { card.style.display = "block"; list.innerHTML = html; }
+  else { card.style.display = "none"; }
+}
+
+function buildTrend(series, t, m) {
+  const W = 320, H = 64, pad = 8;
+  const vals = series.filter(v => v != null);
+  let lo = Math.min(...vals, t.min), hi = Math.max(...vals, t.max);
+  const r = (hi - lo) || 1; lo -= r * 0.12; hi += r * 0.12;
+  const n = series.length;
+  const X = i => pad + (n === 1 ? 0 : i * (W - 2 * pad) / (n - 1));
+  const Y = v => pad + (1 - (v - lo) / (hi - lo)) * (H - 2 * pad);
+  const b1 = Y(t.max), b2 = Y(t.min);
+  const pts = series.map((v, i) => v == null ? null : `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).filter(Boolean).join(" ");
+  const dots = series.map((v, i) => v == null ? "" : `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.5" fill="${m.color}"/>`).join("");
+  const lastVal = vals[vals.length - 1];
+  return `<div class="trend">
+    <div class="trend-head"><span class="trend-name">${m.name}</span><span class="trend-last">sad: ${lastVal}</span></div>
+    <svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <rect x="0" y="${Math.min(b1, b2).toFixed(1)}" width="${W}" height="${Math.abs(b2 - b1).toFixed(1)}" fill="${m.color}" opacity="0.10"/>
+      <polyline points="${pts}" fill="none" stroke="${m.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      ${dots}
+    </svg>
+  </div>`;
+}
+
+/* ---------------- Kalkulator doza ---------------- */
+function initCalc() {
+  const metric = document.getElementById("calcMetric");
+  const cur = document.getElementById("calcCur");
+  const tgt = document.getElementById("calcTgt");
+  if (!metric) return;
+  const defaults = { cl:{src:"freeChlorine",tgt:1.5}, ph:{src:"ph",tgt:7.4}, ta:{src:"alkalinity",tgt:100}, cya:{src:"cya",tgt:40} };
+  function prefill() {
+    const d = defaults[metric.value];
+    const r = readings[d.src];
+    cur.value = (r !== "" && r != null) ? r : "";
+    tgt.value = d.tgt;
+    calcUpdate();
+  }
+  metric.addEventListener("change", prefill);
+  cur.addEventListener("input", calcUpdate);
+  tgt.addEventListener("input", calcUpdate);
+  prefill();
+}
+
+function calcUpdate() {
+  const metric = document.getElementById("calcMetric").value;
+  const cur = parseFloat(document.getElementById("calcCur").value);
+  const tgt = parseFloat(document.getElementById("calcTgt").value);
+  const out = document.getElementById("calcResult");
+  if (isNaN(cur) || isNaN(tgt)) { out.innerHTML = "Unesi trenutnu i ciljanu vrijednost…"; return; }
+  let grams = 0, what = "";
+  if (metric === "cl") {
+    if (tgt <= cur) { out.innerHTML = "Klor je već na/iznad cilja — ne dodaje se (pada sam na suncu ili razrjeđivanjem)."; return; }
+    grams = calcChlorineDose(cur, tgt); what = "klora (granule)";
+  } else if (metric === "ph") {
+    if (tgt < cur) { grams = calcPhMinusDose(cur, tgt); what = "pH minusa"; }
+    else if (tgt > cur) { grams = calcPhPlusDose(cur, tgt); what = "pH plusa"; }
+    else { out.innerHTML = "pH je već na cilju."; return; }
+  } else if (metric === "ta") {
+    if (tgt <= cur) { out.innerHTML = "TA je već na/iznad cilja. Za sniženje se koristi pH minus u više navrata."; return; }
+    grams = calcAlkalinityDose(cur, tgt); what = "alkalinitet+ (soda bikarbona)";
+  } else if (metric === "cya") {
+    if (tgt <= cur) { out.innerHTML = "CYA je već na/iznad cilja — snižava se samo zamjenom dijela vode."; return; }
+    grams = calcCyaDose(cur, tgt); what = "stabilizatora (CYA)";
+  }
+  out.innerHTML = `Dodaj otprilike <b>${grams} g</b> ${what}.
+    <br><span style="font-size:11px;opacity:.8">Za ${POOL_VOLUME_M3.toFixed(1)} m³, od ${cur} do ${tgt}. Doziraj postupno pa ponovo izmjeri.</span>`;
+}
+
 function switchTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
@@ -1344,14 +1594,17 @@ function switchTab(tab) {
   renderStartup();
   renderStartupDoses();
   renderHistory();
+  renderDashboard();
+  initCalc();
   updateStartupVisibility();
   await initReminders();
 
   if (weather) renderWeather(weather, true); // odmah prikaži zadnje poznato
   refreshWeather();                          // pa osvježi s mreže (bez blokiranja)
 
-  // Pri prvom punjenju (prazna historija) otvori odmah tab puštanja u rad.
+  // Pri prvom punjenju → "Prvo punjenje"; inače početni ekran "Danas".
   if (history.length === 0) switchTab("startup");
+  else switchTab("danas");
 })();
 
 // Registracija service workera (instalacija / offline rad).
