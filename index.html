@@ -137,6 +137,7 @@
 
 <div class="tabs-wrap">
   <div class="tabs">
+    <button class="tab-btn" id="tab-startup" data-tab="startup" onclick="switchTab('startup')" style="display:none;">🚀 Punjenje</button>
     <button class="tab-btn active" data-tab="hemija" onclick="switchTab('hemija')">⚗️ Hemija</button>
     <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Čišćenje</button>
     <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Historija</button>
@@ -144,6 +145,27 @@
 </div>
 
 <div class="content">
+
+  <div class="panel" id="panel-startup">
+    <div class="card" style="background:linear-gradient(to bottom right, var(--cyan-50), white); border-color:#a5f3fc;">
+      <h2 style="color:var(--cyan-700);">🚀 Puštanje u rad — prvo punjenje</h2>
+      <p class="hint">Redoslijed je bitan. Prati korake odozgo nadolje i ne sipaj sve odjednom.</p>
+      <div class="checklist-header" style="margin-top:6px;">
+        <span class="badge" id="startupBadge">0/6</span>
+        <button class="clear-btn" onclick="resetStartup()">↺ Resetuj</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="startupProgress"></div></div>
+      <div id="startupRows"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:10px;">Startne doze (svježa voda)</h2>
+      <div class="dose-grid" id="startupDoseGrid"></div>
+      <div class="warn-box">
+        ⚠️ <span>Stabilizator i klor računati su za svježu vodu (CYA ≈ 0, klor ≈ 0). Alkalinitet i pH zavise od tvoje vode iz slavine — njih podesi tek nakon prvog testa u tabu <b>Hemija</b>.</span>
+      </div>
+    </div>
+  </div>
 
   <div class="panel active" id="panel-hemija">
     <div class="card">
@@ -221,6 +243,15 @@ const CHECKLIST_DEFS = [
   { id: "sandcheck", icon: "🏖️", label: "Provjera/zamjena pijeska u filteru", freq: "Sezonski (1x godišnje)" },
 ];
 
+const STARTUP_DEFS = [
+  { id: "fill",  icon: "🚰", label: "Napuni bazen i pokreni pumpu", note: "Pusti pumpu 24 h kontinuirano da se voda izmiješa i profiltrira." },
+  { id: "ta",    icon: "🧪", label: "Izmjeri i podesi alkalinitet (TA)", note: "Cilj 80–120 mg/l. TA ide prvi jer stabilizuje pH." },
+  { id: "ph",    icon: "⚖️", label: "Podesi pH", note: "Cilj 7,2–7,6. Tek nakon što je TA u redu." },
+  { id: "cya",   icon: "🛡️", label: "Dodaj stabilizator (CYA)", note: "Cilj ~40 mg/l. Sipaj kroz skimmer; sporo se otapa — ne mjeri klor 24–48 h." },
+  { id: "shock", icon: "⚡", label: "Šok hloriranje / početni klor", note: "Podigni klor; sipaj uvečer da ga UV ne razgradi odmah." },
+  { id: "retest",icon: "✅", label: "Sačekaj 24 h pa ponovo izmjeri", note: "Fino doziraj i upiši prvo mjerenje u Hemija → Historija." },
+];
+
 function calcChlorineDose(current, target) {
   const diff = target - current;
   if (diff <= 0) return 0;
@@ -250,6 +281,7 @@ function calcCyaDose(current, target) {
 
 let readings = { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" };
 let checklist = {};
+let startup = {};
 let history = [];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -382,6 +414,66 @@ function renderChecklist() {
     Math.round((done / CHECKLIST_DEFS.length) * 100) + "%";
 }
 
+function renderStartup() {
+  const wrap = document.getElementById("startupRows");
+  wrap.innerHTML = "";
+  STARTUP_DEFS.forEach((item, i) => {
+    const done = !!startup[item.id];
+    const btn = document.createElement("button");
+    btn.className = "check-item" + (done ? " done" : "");
+    btn.innerHTML = `
+      <span class="check-icon">${done ? "✅" : "⬜️"}</span>
+      <div>
+        <div class="check-label">${i + 1}. ${item.icon} ${item.label}</div>
+        <div class="check-freq">${item.note}</div>
+      </div>
+    `;
+    btn.addEventListener("click", () => {
+      startup[item.id] = !startup[item.id];
+      saveKey("pool:startup:state", startup);
+      renderStartup();
+    });
+    wrap.appendChild(btn);
+  });
+  const done = Object.values(startup).filter(Boolean).length;
+  document.getElementById("startupBadge").textContent = `${done}/${STARTUP_DEFS.length}`;
+  document.getElementById("startupProgress").style.width =
+    Math.round((done / STARTUP_DEFS.length) * 100) + "%";
+}
+
+function renderStartupDoses() {
+  const cyaDose = calcCyaDose(0, 40);
+  const shockDose = calcChlorineDose(0, 3);
+  const cards = [
+    { tint:"emerald", icon:"🛡️", label:"Stabilizator (CYA)", grams: cyaDose,   note:"Cilj: 40 mg/l (od 0)" },
+    { tint:"cyan",    icon:"⚡",  label:"Početni klor",       grams: shockDose, note:"Cilj: ~3 mg/l (od 0)" },
+  ];
+  document.getElementById("startupDoseGrid").innerHTML = cards.map(c => `
+    <div class="dose-card ${c.tint}">
+      <div class="dl">${c.icon} ${c.label}</div>
+      <div class="dv">${c.grams > 0 ? c.grams + " g" : "—"}</div>
+      <div class="dn">${c.note}</div>
+    </div>
+  `).join("");
+}
+
+async function resetStartup() {
+  if (!confirm("Resetovati checklist puštanja u rad?")) return;
+  startup = {};
+  await saveKey("pool:startup:state", startup);
+  renderStartup();
+}
+
+function updateStartupVisibility() {
+  // Tab puštanja u rad prikazuje se samo dok nema nijednog mjerenja.
+  const show = history.length === 0;
+  const tab = document.getElementById("tab-startup");
+  tab.style.display = show ? "flex" : "none";
+  if (!show && document.getElementById("panel-startup").classList.contains("active")) {
+    switchTab("hemija");
+  }
+}
+
 function renderHistory() {
   const wrap = document.getElementById("historyList");
   const clearBtn = document.getElementById("clearHistBtn");
@@ -427,6 +519,7 @@ async function clearHistory() {
   history = [];
   await saveKey("pool:history", history);
   renderHistory();
+  updateStartupVisibility();
 }
 
 async function logReading() {
@@ -436,6 +529,7 @@ async function logReading() {
   history = [entry, ...history].slice(0, 200);
   await saveKey("pool:history", history);
   renderHistory();
+  updateStartupVisibility();
 
   const btn = document.getElementById("saveBtn");
   const original = btn.textContent;
@@ -452,6 +546,7 @@ function switchTab(tab) {
 (async function init() {
   readings = await loadKey("pool:readings", { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" });
   history = await loadKey("pool:history", []);
+  startup = await loadKey("pool:startup:state", {});
 
   const savedDate = await loadKey("pool:checklist:date", null);
   const today = todayISO();
@@ -467,7 +562,13 @@ function switchTab(tab) {
   renderParamRows();
   renderDoses();
   renderChecklist();
+  renderStartup();
+  renderStartupDoses();
   renderHistory();
+  updateStartupVisibility();
+
+  // Pri prvom punjenju (prazna historija) otvori odmah tab puštanja u rad.
+  if (history.length === 0) switchTab("startup");
 })();
 </script>
 
