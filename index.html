@@ -344,21 +344,21 @@
 
     <div class="card">
       <details id="cleanGuide" class="guide">
-        <summary>🤖 Robot ZX300 ili 🥅 mrežica — kad šta?</summary>
+        <summary>🏊 Skimmer ili 🤖 robot ZX300 — kad šta?</summary>
         <div style="margin-top:12px;">
           <div class="chem">
-            <div class="chem-name">🥅 Mrežica (skimmer na štapu) — <span style="color:var(--cyan-700)">površina</span></div>
-            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> plutajuću nečistoću — lišće, insekti, polen, trava, dok još pluta.</span></div>
-            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> svaki dan / čim primijetiš, prije nego potone. Brzo, ručno, pumpa ne mora raditi.</span></div>
+            <div class="chem-name">🏊 Skimmer (kači se na rub) — <span style="color:var(--cyan-700)">površina</span></div>
+            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> plutajuću nečistoću — lišće, insekti, polen. Spojen na usis pumpe, sam je vuče u svoju košaricu.</span></div>
+            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> neka radi <b>kad god pumpa radi</b> (stalno skida površinu). Ti samo <b>prazni košaricu dnevno</b>, pogotovo po vjetru i opadanju lišća.</span></div>
           </div>
           <div class="chem">
             <div class="chem-name">🤖 Robot ZX300 — <span style="color:var(--cyan-700)">dno i niži zidovi</span></div>
             <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> nečistoću koja je pala na dno — pijesak, sitni talog, istaloženo lišće. Sam obilazi dno.</span></div>
             <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> 2× sedmično ili po potrebi (vidljiv talog na dnu), <b>uvijek dok pumpa radi</b>.</span></div>
-            <div class="chem-line"><span class="cl-i">⚠️</span><span><b>Uslov:</b> dobar protok — prije puštanja očisti skimmer košaru i po potrebi uradi backwash. Slab protok = robot slabo vuče i zastajkuje.</span></div>
+            <div class="chem-line"><span class="cl-i">⚠️</span><span><b>Uslov:</b> dobar protok — prije puštanja isprazni skimmer košaricu i po potrebi uradi backwash. Slab protok = robot slabo vuče i zastajkuje.</span></div>
           </div>
           <div class="warn-box" style="margin-top:4px;">
-            🔁 <span><b>Redoslijed:</b> prvo pokupi površinu mrežicom (da ne potone), pa pusti ZX300 za dno — robot ne skuplja ono što pluta. Nakon ciklusa izvuci ga, isperi i ne ostavljaj ga nepotrebno na suncu u vodi.</span>
+            🔁 <span><b>Dijele isti priključak:</b> i skimmer i ZX300 spajaju se na usis pumpe, pa rade <b>naizmjenično</b> — kad puštaš robota za dno, prebaciš crijevo sa skimmera na robota, a poslije vratiš skimmer. Za brzo skidanje krupnog lišća zgodna je i ručna mrežica na štapu.</span>
           </div>
         </div>
       </details>
@@ -413,7 +413,7 @@
 <script>
 const POOL_VOLUME_L = 17203;
 const POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
-const PUMP_FLOW_LH = 4500;
+const PUMP_FLOW_LH = 5700; // Intex SX1500 (~1.500 gal/h ≈ 5.700 l/h)
 
 // Bosanska Krupa — za vremensku prognozu (Open-Meteo, bez API ključa)
 const WX_LAT = 44.8833, WX_LON = 16.1517, WX_PLACE = "Bosanska Krupa";
@@ -430,7 +430,7 @@ const TARGETS = {
 
 // interval = preporučeni razmak u danima između dva izvršenja
 const TASK_DEFS = [
-  { id: "skim",      icon: "🍃", label: "Skimanje površine", interval: 1,   freq: "Dnevno" },
+  { id: "skim",      icon: "🧺", label: "Isprazni skimmer košaricu (površina)", interval: 1,   freq: "Dnevno" },
   { id: "test",      icon: "🧪", label: "Test vode (klor, pH, TA)", interval: 1,   freq: "Dnevno" },
   { id: "cover",     icon: "☀️", label: "Solarni pokrivač (stavi/skini)", interval: 1,   freq: "Dnevno" },
   { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", interval: 2,   freq: "Svaki 2. dan" },
@@ -463,9 +463,12 @@ const EQUIPMENT = [
   { icon:"➕", name:"Alkalinitet plus (soda bikarbona)", level:"rec",
     rec:"Obična soda bikarbona; podiže TA u 80–120 mg/l.",
     desc:"Stabilizuje pH — bez dovoljno TA pH zna naglo skakati gore-dolje." },
-  { icon:"🥅", name:"Skimmer mrežica na štapu", level:"must",
+  { icon:"🏊", name:"Skimmer (kači se na rub bazena)", level:"must",
+    rec:"Spaja se na usis pumpe; dijeli priključak sa ZX300.",
+    desc:"Dok pumpa radi, sam vuče plutajuću nečistoću s površine u svoju košaricu. Prazni košaricu dnevno. Detalji u vodiču Skimmer ili robot u tabu Njega." },
+  { icon:"🥅", name:"Mrežica na štapu (ručno)", level:"rec",
     rec:"Fina mrežica + teleskopski štap.",
-    desc:"Skida lišće, insekte i polen s površine prije nego potonu i zagade vodu." },
+    desc:"Za brzo ručno skidanje krupnog lišća i insekata kad ne želiš čekati skimmer." },
   { icon:"🧽", name:"Četka za zidove i dno", level:"rec",
     rec:"Četka širine ~45 cm s nastavkom za štap.",
     desc:"Skida sluzavi film i alge sa zidova i linije vode da se ne nakupljaju." },
@@ -566,7 +569,7 @@ function fmtL(n) { return n.toLocaleString("bs-BA"); }
 
 function renderStaticInfo() {
   document.getElementById("volText").textContent =
-    `${fmtL(POOL_VOLUME_L)} litara · ${(POOL_VOLUME_M3).toFixed(1)} m³ · pumpa ${fmtL(PUMP_FLOW_LH)} l/h`;
+    `${fmtL(POOL_VOLUME_L)} litara · ${(POOL_VOLUME_M3).toFixed(1)} m³ · pumpa SX1500 ${fmtL(PUMP_FLOW_LH)} l/h`;
   document.getElementById("warnVol").textContent = (POOL_VOLUME_M3).toFixed(1);
 
   const turnover = POOL_VOLUME_L / PUMP_FLOW_LH;
