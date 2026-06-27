@@ -2,8 +2,18 @@
 <html lang="bs">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <title>Moj bazen — Intex Ultra XTR</title>
+
+<!-- PWA / Add to Home Screen -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0891b2" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Moj bazen" />
 <style>
   :root {
     --cyan-50:#ecfeff; --cyan-600:#0891b2; --cyan-700:#0e7490;
@@ -286,14 +296,23 @@ let history = [];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+const hasHostStorage = typeof window.storage !== "undefined" && window.storage;
+
 async function loadKey(key, fallback) {
   try {
-    const res = await window.storage.get(key, false);
-    return res ? JSON.parse(res.value) : fallback;
+    if (hasHostStorage) {
+      const res = await window.storage.get(key, false);
+      return res ? JSON.parse(res.value) : fallback;
+    }
+    const raw = localStorage.getItem(key);
+    return raw != null ? JSON.parse(raw) : fallback;
   } catch { return fallback; }
 }
 async function saveKey(key, value) {
-  try { await window.storage.set(key, JSON.stringify(value), false); }
+  try {
+    if (hasHostStorage) { await window.storage.set(key, JSON.stringify(value), false); }
+    else { localStorage.setItem(key, JSON.stringify(value)); }
+  }
   catch (e) { console.error("Storage save failed", e); }
 }
 
@@ -570,6 +589,13 @@ function switchTab(tab) {
   // Pri prvom punjenju (prazna historija) otvori odmah tab puštanja u rad.
   if (history.length === 0) switchTab("startup");
 })();
+
+// Registracija service workera (instalacija / offline rad).
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW registration failed", e));
+  });
+}
 </script>
 
 </body>
