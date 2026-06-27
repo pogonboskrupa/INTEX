@@ -179,6 +179,33 @@
 
   .footnote { font-size:11px; color:var(--slate-400); text-align:center; margin-top:10px; }
 
+  /* Vrijeme */
+  .wx-alert { display:none; margin:10px 16px 0; max-width:480px; margin-left:auto; margin-right:auto;
+    background:var(--rose-500); color:white; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:500;
+    box-shadow:0 3px 10px rgba(244,63,94,.3); cursor:pointer; align-items:center; gap:8px; }
+  .wx-alert.show { display:flex; }
+  .wx-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px; }
+  .wx-current { display:flex; align-items:center; gap:14px; padding:6px 0 12px; }
+  .wx-ico { font-size:44px; line-height:1; }
+  .wx-temp { font-size:38px; font-weight:700; color:var(--slate-800); line-height:1; }
+  .wx-cond { font-size:13px; color:var(--slate-600); margin-top:2px; }
+  .wx-meta { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color:var(--slate-500); margin-top:6px; }
+  .wx-forecast { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; border-top:1px solid var(--slate-100); padding-top:12px; }
+  .wx-day { text-align:center; background:var(--slate-50); border-radius:12px; padding:8px 4px; }
+  .wx-day .dn { font-size:11px; color:var(--slate-500); font-weight:600; text-transform:capitalize; }
+  .wx-day .di { font-size:22px; margin:3px 0; }
+  .wx-day .dt { font-size:12px; font-weight:600; color:var(--slate-700); }
+  .wx-day .dl { font-size:11px; color:var(--slate-400); }
+  .wx-day .dp { font-size:10px; color:var(--cyan-700); margin-top:2px; }
+  .wx-advice-item { display:flex; gap:9px; padding:10px 12px; border-radius:12px; margin-bottom:8px; font-size:12px;
+    line-height:1.5; border:1px solid; }
+  .wx-advice-item:last-child { margin-bottom:0; }
+  .wx-advice-item.alert { background:var(--rose-50); border-color:var(--rose-200); color:var(--rose-700); }
+  .wx-advice-item.warn  { background:var(--amber-50); border-color:var(--amber-200); color:var(--amber-700); }
+  .wx-advice-item.info  { background:var(--cyan-50); border-color:#a5f3fc; color:var(--cyan-700); }
+  .wx-advice-item.ok    { background:var(--emerald-50); border-color:#a7f3d0; color:var(--emerald-700); }
+  .wx-advice-item .ai { flex-shrink:0; font-size:14px; }
+
   .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%) translateY(8px);
     background:var(--slate-900); color:white; border-radius:12px; padding:11px 16px; display:flex; align-items:center;
     gap:16px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.25); z-index:50; opacity:0; pointer-events:none;
@@ -202,9 +229,12 @@
     <button class="tab-btn active" data-tab="hemija" onclick="switchTab('hemija')">⚗️ Hemija</button>
     <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Njega</button>
     <button class="tab-btn" data-tab="oprema" onclick="switchTab('oprema')">🧰 Oprema</button>
-    <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Historija</button>
+    <button class="tab-btn" data-tab="vrijeme" onclick="switchTab('vrijeme')">🌤️ Vrijeme</button>
+    <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Log</button>
   </div>
 </div>
+
+<div id="wxAlert" class="wx-alert" onclick="switchTab('vrijeme')"></div>
 
 <div class="content">
 
@@ -282,6 +312,24 @@
     <div id="equipmentList"></div>
   </div>
 
+  <div class="panel" id="panel-vrijeme">
+    <div class="card">
+      <div class="wx-head">
+        <div>
+          <h2 style="margin:0;">🌤️ Vrijeme · Bosanska Krupa</h2>
+          <p class="hint" id="wxUpdated" style="margin:2px 0 0;">Učitavam…</p>
+        </div>
+        <button class="clear-btn" onclick="refreshWeather()">↻ Osvježi</button>
+      </div>
+      <div id="wxCurrent"></div>
+      <div id="wxForecast" class="wx-forecast"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 10px;">Preporuke na osnovu vremena</h2>
+      <div id="wxAdvice"><p class="hint">Učitavam vremensku prognozu…</p></div>
+    </div>
+  </div>
+
   <div class="panel" id="panel-historija">
     <div class="card">
       <div class="hist-header">
@@ -300,6 +348,10 @@
 const POOL_VOLUME_L = 17203;
 const POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
 const PUMP_FLOW_LH = 4500;
+
+// Bosanska Krupa — za vremensku prognozu (Open-Meteo, bez API ključa)
+const WX_LAT = 44.8833, WX_LON = 16.1517, WX_PLACE = "Bosanska Krupa";
+let weather = null;
 
 const TARGETS = {
   freeChlorine: { min: 1, max: 3, unit: "mg/l", label: "Slobodni klor" },
@@ -809,6 +861,168 @@ async function initReminders() {
   }
 }
 
+/* ---------------- Vrijeme (Open-Meteo) ---------------- */
+
+function wmo(code) {
+  const m = {
+    0:["☀️","Vedro"], 1:["🌤️","Pretežno vedro"], 2:["⛅","Promjenljivo"], 3:["☁️","Oblačno"],
+    45:["🌫️","Magla"], 48:["🌫️","Magla (inje)"],
+    51:["🌦️","Slaba rosulja"], 53:["🌦️","Rosulja"], 55:["🌦️","Jaka rosulja"],
+    56:["🌧️","Ledena rosulja"], 57:["🌧️","Ledena rosulja"],
+    61:["🌧️","Slaba kiša"], 63:["🌧️","Kiša"], 65:["🌧️","Jaka kiša"],
+    66:["🌧️","Ledena kiša"], 67:["🌧️","Ledena kiša"],
+    71:["❄️","Slab snijeg"], 73:["❄️","Snijeg"], 75:["❄️","Jak snijeg"], 77:["❄️","Snježna zrnca"],
+    80:["🌦️","Pljuskovi"], 81:["🌧️","Pljuskovi"], 82:["⛈️","Jaki pljuskovi"],
+    85:["🌨️","Snježni pljuskovi"], 86:["🌨️","Snježni pljuskovi"],
+    95:["⛈️","Grmljavina"], 96:["⛈️","Grmljavina s gradom"], 99:["🌩️","Olujna grmljavina s gradom"],
+  };
+  return m[code] || ["🌡️","—"];
+}
+
+function buildWeatherAdvice(w) {
+  const cur = w.current || {}, d = w.daily || {};
+  const tmax = d.temperature_2m_max?.[0];
+  const psum = d.precipitation_sum?.[0] ?? 0;
+  const pprob = d.precipitation_probability_max?.[0] ?? 0;
+  const uv = d.uv_index_max?.[0] ?? 0;
+  const gust = Math.max(d.wind_gusts_10m_max?.[0] ?? 0, cur.wind_gusts_10m ?? 0);
+  const code = d.weather_code?.[0] ?? cur.weather_code ?? 0;
+  const thunder = code >= 95, hail = code === 96 || code === 99;
+  const out = [];
+
+  if (thunder || hail || gust >= 50 || psum >= 25) {
+    out.push({ level:"alert", icon: hail ? "🌩️" : "⛈️",
+      text:`<b>Nevrijeme u najavi${hail ? " (moguć grad)" : ""}!</b> Pokrij bazen ceradom, ukloni plutajuće igračke i lakše predmete oko bazena, osiguraj nadstrešnicu. Po jakom vjetru i gromovima isključi pumpu i filter.` });
+  } else if (gust >= 35) {
+    out.push({ level:"warn", icon:"💨",
+      text:`Jak vjetar (udari ~${Math.round(gust)} km/h) — pokrij bazen i češće skidaj lišće; vjetar nanosi prašinu i polen koji troše klor.` });
+  }
+
+  if (psum >= 15) {
+    out.push({ level:"warn", icon:"🌧️",
+      text:`Obilna kiša (~${Math.round(psum)} mm) — razrjeđuje vodu i obara klor i pH. Pokrij prije kiše; nakon kiše izmjeri i koriguj, te po potrebi ispusti višak vode.` });
+  } else if (psum >= 2 || pprob >= 60) {
+    out.push({ level:"info", icon:"🌦️",
+      text:`Kiša je vjerovatna (${pprob}%) — nakon kiše izmjeri klor i pH (znaju pasti) i pokupi naneseno lišće.` });
+  }
+
+  if (tmax >= 32) {
+    out.push({ level:"warn", icon:"🥵",
+      text:`Vrlo toplo (${Math.round(tmax)}°C) — klor brzo izgara. Drži klor pri gornjoj granici (2–3 mg/l), pusti pumpu duže (~2 kruga dnevno) i razmisli o algicidu.` });
+  } else if (tmax >= 28) {
+    out.push({ level:"info", icon:"☀️",
+      text:`Toplo (${Math.round(tmax)}°C) — veća potrošnja klora i rizik od algi. Provjeri klor i produži rad pumpe.` });
+  }
+
+  if (uv >= 6) {
+    out.push({ level:"info", icon:"🛡️",
+      text:`Jak UV (indeks ${Math.round(uv)}) — sunce razgrađuje klor. Provjeri stabilizator (CYA 30–50 mg/l) i klor doziraj predvečer.` });
+  }
+
+  if (tmax != null && tmax < 18) {
+    out.push({ level:"info", icon:"🧥",
+      text:`Svježije (${Math.round(tmax)}°C) — manja potrošnja klora i sporiji rast algi; možeš skratiti rad pumpe i pokriti bazen da zadržiš toplinu.` });
+  }
+
+  if (out.length === 0) {
+    out.push({ level:"ok", icon:"🏊",
+      text:`Vrijeme je mirno i povoljno — dovoljno je standardno održavanje. Idealno za kupanje.` });
+  }
+  return out;
+}
+
+async function fetchWeather() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}`
+    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max,wind_gusts_10m_max`
+    + `&timezone=auto&forecast_days=4`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+function renderWeather(w, stale) {
+  const cur = w.current || {}, d = w.daily || {};
+  const [ico, cond] = wmo(cur.weather_code ?? d.weather_code?.[0] ?? 0);
+
+  document.getElementById("wxUpdated").textContent =
+    (stale ? "Zadnji poznati podaci · " : "Ažurirano ") +
+    new Date(stale ? (w._fetchedAt || Date.now()) : Date.now()).toLocaleString("bs-BA",
+      { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+  document.getElementById("wxCurrent").innerHTML = `
+    <div class="wx-current">
+      <div class="wx-ico">${ico}</div>
+      <div>
+        <div class="wx-temp">${Math.round(cur.temperature_2m)}°C</div>
+        <div class="wx-cond">${cond} · osjećaj ${Math.round(cur.apparent_temperature)}°C</div>
+        <div class="wx-meta">
+          <span>💧 vlažnost ${Math.round(cur.relative_humidity_2m)}%</span>
+          <span>💨 vjetar ${Math.round(cur.wind_speed_10m)} km/h</span>
+          <span>🌫️ udari ${Math.round(cur.wind_gusts_10m)} km/h</span>
+          <span>🛡️ UV ${Math.round(d.uv_index_max?.[0] ?? 0)}</span>
+        </div>
+      </div>
+    </div>`;
+
+  const days = (d.time || []).slice(0, 4).map((t, i) => {
+    const [di] = wmo(d.weather_code[i]);
+    const dn = i === 0 ? "Danas" : new Date(t).toLocaleDateString("bs-BA", { weekday: "short" });
+    const prob = d.precipitation_probability_max?.[i] ?? 0;
+    return `<div class="wx-day">
+      <div class="dn">${dn}</div>
+      <div class="di">${di}</div>
+      <div class="dt">${Math.round(d.temperature_2m_max[i])}°</div>
+      <div class="dl">${Math.round(d.temperature_2m_min[i])}°</div>
+      <div class="dp">💧 ${prob}%</div>
+    </div>`;
+  }).join("");
+  document.getElementById("wxForecast").innerHTML = days;
+
+  const advice = buildWeatherAdvice(w);
+  document.getElementById("wxAdvice").innerHTML = advice.map(a =>
+    `<div class="wx-advice-item ${a.level}"><span class="ai">${a.icon}</span><span>${a.text}</span></div>`
+  ).join("");
+
+  // Trajni baner za nevrijeme (vidljiv na svim tabovima)
+  const alert = advice.find(a => a.level === "alert");
+  const bar = document.getElementById("wxAlert");
+  if (alert) { bar.innerHTML = `${alert.icon} <span>Nevrijeme u najavi — pokrij bazen. Dodirni za detalje.</span>`; bar.classList.add("show"); }
+  else { bar.classList.remove("show"); }
+
+  maybeNotifyWeather(advice);
+}
+
+async function refreshWeather() {
+  document.getElementById("wxUpdated").textContent = "Učitavam…";
+  try {
+    const data = await fetchWeather();
+    data._fetchedAt = Date.now();
+    weather = data;
+    await saveKey("pool:weather", data);
+    renderWeather(data, false);
+  } catch (e) {
+    console.warn("weather fetch failed", e);
+    if (weather) {
+      renderWeather(weather, true);
+    } else {
+      document.getElementById("wxUpdated").textContent = "Nije moguće učitati vrijeme.";
+      document.getElementById("wxAdvice").innerHTML =
+        `<div class="wx-advice-item info"><span class="ai">📡</span><span>Nema internet veze za prognozu. Provjeri vezu i dodirni „↻ Osvježi".</span></div>`;
+    }
+  }
+}
+
+async function maybeNotifyWeather(advice) {
+  if (!notifySupported() || Notification.permission !== "granted") return;
+  if (!advice.some(a => a.level === "alert")) return;
+  const today = todayISO();
+  const last = await idbGet("wxNotifyLast").catch(() => null);
+  if (last === today) return;
+  await showNotif("⛈️ Nevrijeme u najavi — " + WX_PLACE, "Pokrij bazen i osiguraj opremu oko bazena.");
+  try { await idbSet("wxNotifyLast", today); } catch {}
+}
+
 function renderStartup() {
   const wrap = document.getElementById("startupRows");
   wrap.innerHTML = "";
@@ -949,6 +1163,7 @@ function switchTab(tab) {
   startup = await loadKey("pool:startup:state", {});
   tasksDone = await loadKey("pool:tasks:done", {});
   equipOwned = await loadKey("pool:equipment:owned", {});
+  weather = await loadKey("pool:weather", null);
 
   renderStaticInfo();
   renderParamRows();
@@ -960,6 +1175,9 @@ function switchTab(tab) {
   renderHistory();
   updateStartupVisibility();
   await initReminders();
+
+  if (weather) renderWeather(weather, true); // odmah prikaži zadnje poznato
+  refreshWeather();                          // pa osvježi s mreže (bez blokiranja)
 
   // Pri prvom punjenju (prazna historija) otvori odmah tab puštanja u rad.
   if (history.length === 0) switchTab("startup");
