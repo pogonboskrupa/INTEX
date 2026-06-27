@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Moj bazen — Intex Ultra XTR</title>
+<style>
+  :root {
+    --cyan-50:#ecfeff; --cyan-600:#0891b2; --cyan-700:#0e7490;
+    --teal-500:#14b8a6;
+    --emerald-50:#ecfdf5; --emerald-500:#10b981; --emerald-700:#047857;
+    --amber-50:#fffbeb; --amber-700:#b45309; --amber-200:#fde68a;
+    --rose-50:#fff1f2; --rose-500:#f43f5e; --rose-700:#be123c; --rose-200:#fecdd3;
+    --violet-50:#f5f3ff; --violet-700:#6d28d9; --violet-100:#ede9fe;
+    --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0;
+    --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b;
+    --slate-600:#475569; --slate-700:#334155; --slate-800:#1e293b; --slate-900:#0f172a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(to bottom, var(--cyan-50), var(--slate-50) 200px, var(--slate-50));
+    color:var(--slate-800); min-height:100vh;
+  }
+  .header {
+    background:linear-gradient(to right, var(--cyan-600), var(--teal-500));
+    color:white; padding:20px 16px 26px; border-radius:0 0 24px 24px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+  .header .eyebrow { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; opacity:.9; }
+  .header h1 { font-size:24px; font-weight:700; margin:6px 0 0; }
+  .header .meta { margin-top:8px; display:flex; align-items:center; gap:6px; font-size:13px; opacity:.95; flex-wrap:wrap; }
+
+  .tabs-wrap { padding:0 16px; margin-top:-14px; }
+  .tabs { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--slate-100);
+    padding:4px; display:flex; gap:4px; }
+  .tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 6px;
+    border-radius:12px; font-size:13px; font-weight:500; border:none; background:transparent; color:var(--slate-500);
+    cursor:pointer; transition:all .15s; }
+  .tab-btn.active { background:var(--cyan-600); color:white; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .tab-btn:not(.active):hover { background:var(--slate-50); }
+
+  .content { padding:16px; padding-bottom:32px; max-width:480px; margin:0 auto; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .card { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border:1px solid var(--slate-100);
+    padding:16px; margin-bottom:14px; }
+  .card h2 { font-size:14px; font-weight:600; color:var(--slate-700); margin:0 0 4px; }
+  .card .hint { font-size:11px; color:var(--slate-400); margin:0 0 8px; }
+
+  .param-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0;
+    border-bottom:1px solid var(--slate-100); }
+  .param-row:last-child { border-bottom:none; }
+  .param-row .label { font-size:14px; font-weight:500; color:var(--slate-800); }
+  .param-row .target { font-size:11px; color:var(--slate-400); }
+  .param-row .right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .param-row input { width:72px; text-align:right; border:1px solid var(--slate-200); border-radius:10px;
+    padding:7px 8px; font-size:14px; font-family:inherit; }
+  .param-row input:focus { outline:2px solid var(--cyan-600); outline-offset:1px; border-color:var(--cyan-600); }
+
+  .pill { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:11px;
+    font-weight:500; border:1px solid; white-space:nowrap; }
+  .pill.ok { background:var(--emerald-50); color:var(--emerald-700); border-color:#a7f3d0; }
+  .pill.low { background:var(--amber-50); color:var(--amber-700); border-color:var(--amber-200); }
+  .pill.high { background:var(--rose-50); color:var(--rose-700); border-color:var(--rose-200); }
+  .pill.empty { color:var(--slate-400); border-color:transparent; font-size:12px; }
+
+  .save-btn { margin-top:10px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--slate-900); color:white; font-size:14px; font-weight:500; padding:11px; border:none;
+    border-radius:12px; cursor:pointer; transition:background .15s; }
+  .save-btn:active { transform:scale(0.99); }
+  .save-btn:hover { background:var(--slate-700); }
+  .save-btn.saved { background:var(--emerald-500); }
+
+  .dose-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .dose-card { border-radius:12px; padding:12px; border:1px solid; }
+  .dose-card.cyan { background:var(--cyan-50); border-color:#a5f3fc; color:var(--cyan-700); }
+  .dose-card.amber { background:var(--amber-50); border-color:var(--amber-200); color:var(--amber-700); }
+  .dose-card.violet { background:var(--violet-50); border-color:var(--violet-100); color:var(--violet-700); }
+  .dose-card.teal { background:#f0fdfa; border-color:#99f6e4; color:#0f766e; }
+  .dose-card.emerald { background:var(--emerald-50); border-color:#a7f3d0; color:var(--emerald-700); }
+  .dose-card .dl { font-size:12px; font-weight:500; opacity:.85; display:flex; align-items:center; gap:6px;}
+  .dose-card .dv { font-size:22px; font-weight:700; margin-top:4px; }
+  .dose-card .dn { font-size:11px; opacity:.7; margin-top:2px; }
+
+  .warn-box { margin-top:12px; display:flex; gap:8px; background:var(--slate-50); border-radius:12px; padding:10px 12px;
+    font-size:11px; color:var(--slate-500); line-height:1.5; }
+
+  .circ-row { display:flex; align-items:center; justify-content:space-between; background:var(--slate-50);
+    border-radius:12px; padding:12px; }
+  .circ-row .ct { font-size:12px; color:var(--slate-500); }
+  .circ-row .cv { font-size:18px; font-weight:600; color:var(--slate-800); }
+
+  .check-item { width:100%; display:flex; align-items:center; gap:12px; padding:11px; border-radius:12px;
+    text-align:left; border:none; background:transparent; cursor:pointer; font-family:inherit; }
+  .check-item:hover { background:var(--slate-50); }
+  .check-item.done { background:var(--emerald-50); }
+  .check-item.done:hover { background:var(--emerald-50); }
+  .check-icon { flex-shrink:0; width:20px; height:20px; }
+  .check-label { font-size:14px; font-weight:500; color:var(--slate-700); }
+  .check-item.done .check-label { color:var(--emerald-700); text-decoration:line-through; }
+  .check-freq { font-size:11px; color:var(--slate-400); margin-top:1px; }
+
+  .checklist-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .badge { font-size:12px; font-weight:500; color:var(--cyan-700); background:var(--cyan-50); padding:4px 10px;
+    border-radius:999px; }
+
+  .progress-track { height:6px; background:var(--slate-100); border-radius:999px; overflow:hidden; margin-bottom:12px; }
+  .progress-fill { height:100%; background:linear-gradient(to right, var(--cyan-600), var(--teal-500));
+    width:0%; transition:width .25s; }
+
+  .hist-empty { text-align:center; padding:40px 0; color:var(--slate-400); font-size:14px; }
+  .hist-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-radius:12px;
+    background:var(--slate-50); margin-bottom:8px; }
+  .hist-date { font-size:12px; font-weight:500; color:var(--slate-600); }
+  .hist-vals { font-size:11px; color:var(--slate-400); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap; }
+  .hist-del { flex-shrink:0; border:none; background:transparent; color:var(--slate-300); cursor:pointer; padding:6px; }
+  .hist-del:hover { color:var(--rose-500); }
+
+  .hist-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .clear-btn { border:1px solid var(--slate-200); background:white; color:var(--slate-500); font-size:11px;
+    font-family:inherit; padding:5px 10px; border-radius:999px; cursor:pointer; }
+  .clear-btn:hover { background:var(--rose-50); color:var(--rose-700); border-color:var(--rose-200); }
+
+  .footnote { font-size:11px; color:var(--slate-400); text-align:center; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">🌊 Intex Ultra XTR Frame 26356 · 549×274×132 cm</div>
+  <h1>Moj bazen</h1>
+  <div class="meta">💧 <span id="volText"></span></div>
+</div>
+
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="hemija" onclick="switchTab('hemija')">⚗️ Hemija</button>
+    <button class="tab-btn" data-tab="ciscenje" onclick="switchTab('ciscenje')">🧹 Čišćenje</button>
+    <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Historija</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="panel active" id="panel-hemija">
+    <div class="card">
+      <h2>Trenutna mjerenja</h2>
+      <p class="hint">Unesi vrijednosti sa test traka ili foto-metra.</p>
+      <div id="paramRows"></div>
+      <button class="save-btn" id="saveBtn" onclick="logReading()">📅 Sačuvaj mjerenje u historiju</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:10px;">Preporučeno doziranje</h2>
+      <div class="dose-grid" id="doseGrid"></div>
+      <div class="warn-box">
+        ⚠️ <span>Doze su orijentacione, računate za <span id="warnVol"></span> m³ vode po standardnim formulama. Uvijek provjeri uputstvo na pakovanju koje koristiš i nikad ne mješaj klor i pH proizvode direktno.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-ciscenje">
+    <div class="card">
+      <h2>Vrijeme cirkulacije pumpe</h2>
+      <div class="circ-row">
+        <div class="ct" id="circLabel"></div>
+        <div class="cv" id="circValue"></div>
+      </div>
+      <p class="hint" id="circHint" style="margin-top:8px;"></p>
+    </div>
+
+    <div class="card">
+      <div class="checklist-header">
+        <h2 style="margin:0;">Dnevni checklist</h2>
+        <span class="badge" id="checkBadge">0/9</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="checkProgress"></div></div>
+      <div id="checklistRows"></div>
+      <p class="footnote">Checklist se resetuje svakog novog dana.</p>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-historija">
+    <div class="card">
+      <div class="hist-header">
+        <h2 style="margin:0;">Historija mjerenja</h2>
+        <button class="clear-btn" id="clearHistBtn" onclick="clearHistory()" style="display:none;">🗑️ Obriši sve</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const POOL_VOLUME_L = 17203;
+const POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
+const PUMP_FLOW_LH = 4500;
+
+const TARGETS = {
+  freeChlorine: { min: 1, max: 3, unit: "mg/l", label: "Slobodni klor" },
+  ph:           { min: 7.2, max: 7.6, unit: "", label: "pH vrijednost" },
+  alkalinity:   { min: 80, max: 120, unit: "mg/l", label: "Alkalinitet (TA)" },
+  cya:          { min: 30, max: 50, unit: "mg/l", label: "Stabilizator (CYA)" },
+  temperature:  { min: 26, max: 30, unit: "°C", label: "Temperatura vode",
+                  lowLabel: "Hladno", highLabel: "Toplo", okLabel: "Ugodno" },
+};
+
+const CHECKLIST_DEFS = [
+  { id: "skim",      icon: "🍃", label: "Skimanje površine (lišće, insekti)", freq: "Dnevno" },
+  { id: "test",      icon: "🧪", label: "Test vode (klor, pH, alkalinitet)", freq: "Dnevno" },
+  { id: "cover",     icon: "☀️", label: "Stavi/skini solarni pokrivač", freq: "Dnevno" },
+  { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", freq: "Dnevno" },
+  { id: "vacuum",    icon: "🌀", label: "Usisavanje dna bazena", freq: "2x sedmično" },
+  { id: "walls",     icon: "🧽", label: "Četkanje zidova i linije vode", freq: "Sedmično" },
+  { id: "backwash",  icon: "🔄", label: "Backwash pijeskanog filtera", freq: "Sedmično (manometar +0.2-0.3 bar)" },
+  { id: "shock",     icon: "⚡", label: "Šok hloriranje", freq: "Sedmično/po potrebi" },
+  { id: "sandcheck", icon: "🏖️", label: "Provjera/zamjena pijeska u filteru", freq: "Sezonski (1x godišnje)" },
+];
+
+function calcChlorineDose(current, target) {
+  const diff = target - current;
+  if (diff <= 0) return 0;
+  return Math.round(diff * POOL_VOLUME_M3 * 10) / 10;
+}
+function calcPhMinusDose(current, target) {
+  const diff = current - target;
+  if (diff <= 0) return 0;
+  return Math.round(diff * 10 * POOL_VOLUME_M3 * 10) / 10;
+}
+function calcPhPlusDose(current, target) {
+  const diff = target - current;
+  if (diff <= 0) return 0;
+  return Math.round(diff * 10 * 15 * POOL_VOLUME_M3 * 10) / 10;
+}
+function calcAlkalinityDose(current, target) {
+  const diff = target - current;
+  if (diff <= 0) return 0;
+  return Math.round((diff / 10) * 17 * POOL_VOLUME_M3 * 10) / 10;
+}
+function calcCyaDose(current, target) {
+  const diff = target - current;
+  if (diff <= 0) return 0;
+  // ~1 g/m³ stabilizatora podiže CYA za ~1 mg/l
+  return Math.round(diff * POOL_VOLUME_M3 * 10) / 10;
+}
+
+let readings = { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" };
+let checklist = {};
+let history = [];
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+async function loadKey(key, fallback) {
+  try {
+    const res = await window.storage.get(key, false);
+    return res ? JSON.parse(res.value) : fallback;
+  } catch { return fallback; }
+}
+async function saveKey(key, value) {
+  try { await window.storage.set(key, JSON.stringify(value), false); }
+  catch (e) { console.error("Storage save failed", e); }
+}
+
+function fmtL(n) { return n.toLocaleString("bs-BA"); }
+
+function renderStaticInfo() {
+  document.getElementById("volText").textContent =
+    `${fmtL(POOL_VOLUME_L)} litara · ${(POOL_VOLUME_M3).toFixed(1)} m³ · pumpa ${fmtL(PUMP_FLOW_LH)} l/h`;
+  document.getElementById("warnVol").textContent = (POOL_VOLUME_M3).toFixed(1);
+
+  const turnover = POOL_VOLUME_L / PUMP_FLOW_LH;
+  const minDaily = turnover * 1.5;
+  const maxDaily = turnover * 2;
+  document.getElementById("circLabel").textContent =
+    `Za 1 puni krug (${fmtL(POOL_VOLUME_L)} l ÷ ${fmtL(PUMP_FLOW_LH)} l/h)`;
+  document.getElementById("circValue").textContent = `${turnover.toFixed(1)} h`;
+  document.getElementById("circHint").textContent =
+    `Preporuka: pumpu pusti minimum 1.5–2 kruga dnevno (~${minDaily.toFixed(1)}–${maxDaily.toFixed(1)} h) za bistru vodu.`;
+}
+
+function renderParamRows() {
+  const wrap = document.getElementById("paramRows");
+  wrap.innerHTML = "";
+  Object.keys(TARGETS).forEach((key) => {
+    const t = TARGETS[key];
+    const row = document.createElement("div");
+    row.className = "param-row";
+    row.innerHTML = `
+      <div>
+        <div class="label">${t.label}</div>
+        <div class="target">Cilj: ${t.min}–${t.max} ${t.unit}</div>
+      </div>
+      <div class="right">
+        <input type="number" step="0.1" inputmode="decimal" placeholder="—" value="${readings[key] ?? ""}" data-key="${key}" />
+        <span class="pill-slot"></span>
+      </div>
+    `;
+    const input = row.querySelector("input");
+    input.addEventListener("input", (e) => {
+      readings[key] = e.target.value;
+      saveKey("pool:readings", readings);
+      renderPill(row.querySelector(".pill-slot"), key);
+      renderDoses();
+    });
+    wrap.appendChild(row);
+    renderPill(row.querySelector(".pill-slot"), key);
+  });
+}
+
+function renderPill(slot, key) {
+  const t = TARGETS[key];
+  const val = readings[key];
+  if (val === "" || val === null || val === undefined) {
+    slot.innerHTML = `<span class="pill empty">—</span>`;
+    return;
+  }
+  const v = parseFloat(val);
+  let state = "ok", text = t.okLabel || "U redu", icon = "✓";
+  if (v < t.min) { state = "low"; text = t.lowLabel || "Nisko"; icon = "↓"; }
+  else if (v > t.max) { state = "high"; text = t.highLabel || "Visoko"; icon = "↑"; }
+  slot.innerHTML = `<span class="pill ${state}">${icon} ${text}</span>`;
+}
+
+function renderDoses() {
+  const cl = parseFloat(readings.freeChlorine);
+  const ph = parseFloat(readings.ph);
+  const ta = parseFloat(readings.alkalinity);
+  const cy = parseFloat(readings.cya);
+
+  const chlorineDose = !isNaN(cl) ? calcChlorineDose(cl, TARGETS.freeChlorine.min + 0.5) : 0;
+  const phMinusDose  = !isNaN(ph) ? calcPhMinusDose(ph, 7.4) : 0;
+  const phPlusDose   = !isNaN(ph) ? calcPhPlusDose(ph, 7.4) : 0;
+  const alkDose      = !isNaN(ta) ? calcAlkalinityDose(ta, 100) : 0;
+  const cyaDose      = !isNaN(cy) ? calcCyaDose(cy, 40) : 0;
+
+  const cards = [
+    { tint:"cyan",    label:"Klor (granule)", grams: chlorineDose, note: isNaN(cl) ? "Unesi klor" : (chlorineDose > 0 ? "Cilj: 1.5 mg/l" : "Klor je OK"), icon:"⚗️" },
+    { tint:"amber",   label:"pH minus",       grams: phMinusDose,  note: isNaN(ph) ? "Unesi pH"   : (phMinusDose  > 0 ? "Cilj: pH 7.4"  : "—"),         icon:"↓" },
+    { tint:"violet",  label:"pH plus",        grams: phPlusDose,   note: isNaN(ph) ? "Unesi pH"   : (phPlusDose   > 0 ? "Cilj: pH 7.4"  : "—"),         icon:"↑" },
+    { tint:"teal",    label:"Alkalinitet+",   grams: alkDose,      note: isNaN(ta) ? "Unesi TA"   : (alkDose      > 0 ? "Cilj: 100 mg/l": "TA je OK"),  icon:"−" },
+    { tint:"emerald", label:"Stabilizator+",  grams: cyaDose,      note: isNaN(cy) ? "Unesi CYA"  : (cyaDose      > 0 ? "Cilj: 40 mg/l" : "CYA je OK"), icon:"🛡️" },
+  ];
+
+  const grid = document.getElementById("doseGrid");
+  grid.innerHTML = cards.map(c => `
+    <div class="dose-card ${c.tint}">
+      <div class="dl">${c.icon} ${c.label}</div>
+      <div class="dv">${c.grams > 0 ? c.grams + " g" : "—"}</div>
+      <div class="dn">${c.note}</div>
+    </div>
+  `).join("");
+}
+
+function renderChecklist() {
+  const wrap = document.getElementById("checklistRows");
+  wrap.innerHTML = "";
+  CHECKLIST_DEFS.forEach((item) => {
+    const done = !!checklist[item.id];
+    const btn = document.createElement("button");
+    btn.className = "check-item" + (done ? " done" : "");
+    btn.innerHTML = `
+      <span class="check-icon">${done ? "✅" : "⬜️"}</span>
+      <div>
+        <div class="check-label">${item.icon} ${item.label}</div>
+        <div class="check-freq">${item.freq}</div>
+      </div>
+    `;
+    btn.addEventListener("click", () => {
+      checklist[item.id] = !checklist[item.id];
+      saveKey("pool:checklist:state", checklist);
+      renderChecklist();
+    });
+    wrap.appendChild(btn);
+  });
+  const done = Object.values(checklist).filter(Boolean).length;
+  document.getElementById("checkBadge").textContent = `${done}/${CHECKLIST_DEFS.length}`;
+  document.getElementById("checkProgress").style.width =
+    Math.round((done / CHECKLIST_DEFS.length) * 100) + "%";
+}
+
+function renderHistory() {
+  const wrap = document.getElementById("historyList");
+  const clearBtn = document.getElementById("clearHistBtn");
+  if (history.length === 0) {
+    wrap.innerHTML = `<div class="hist-empty">💧<br/>Još nema sačuvanih mjerenja.</div>`;
+    clearBtn.style.display = "none";
+    return;
+  }
+  clearBtn.style.display = "inline-block";
+  wrap.innerHTML = history.map((entry, idx) => {
+    const d = new Date(entry.date);
+    const dateStr = d.toLocaleDateString("bs-BA", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    const vals = [];
+    if (entry.freeChlorine) vals.push(`Klor ${entry.freeChlorine}`);
+    if (entry.ph) vals.push(`pH ${entry.ph}`);
+    if (entry.alkalinity) vals.push(`TA ${entry.alkalinity}`);
+    if (entry.cya) vals.push(`CYA ${entry.cya}`);
+    if (entry.temperature) vals.push(`${entry.temperature}°C`);
+    return `
+      <div class="hist-item">
+        <div>
+          <div class="hist-date">${dateStr}</div>
+          <div class="hist-vals">${vals.map(v => `<span>${v}</span>`).join("")}</div>
+        </div>
+        <button class="hist-del" data-idx="${idx}" aria-label="Obriši unos">🗑️</button>
+      </div>
+    `;
+  }).join("");
+
+  wrap.querySelectorAll(".hist-del").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      history.splice(idx, 1);
+      await saveKey("pool:history", history);
+      renderHistory();
+    });
+  });
+}
+
+async function clearHistory() {
+  if (history.length === 0) return;
+  if (!confirm("Obrisati cijelu historiju mjerenja?")) return;
+  history = [];
+  await saveKey("pool:history", history);
+  renderHistory();
+}
+
+async function logReading() {
+  const hasAny = Object.values(readings).some(v => v !== "" && v !== null && v !== undefined);
+  if (!hasAny) return;
+  const entry = { date: new Date().toISOString(), ...readings };
+  history = [entry, ...history].slice(0, 200);
+  await saveKey("pool:history", history);
+  renderHistory();
+
+  const btn = document.getElementById("saveBtn");
+  const original = btn.textContent;
+  btn.textContent = "✓ Sačuvano u historiju!";
+  btn.classList.add("saved");
+  setTimeout(() => { btn.textContent = original; btn.classList.remove("saved"); }, 1600);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
+}
+
+(async function init() {
+  readings = await loadKey("pool:readings", { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" });
+  history = await loadKey("pool:history", []);
+
+  const savedDate = await loadKey("pool:checklist:date", null);
+  const today = todayISO();
+  if (savedDate === today) {
+    checklist = await loadKey("pool:checklist:state", {});
+  } else {
+    checklist = {};
+    await saveKey("pool:checklist:date", today);
+    await saveKey("pool:checklist:state", checklist);
+  }
+
+  renderStaticInfo();
+  renderParamRows();
+  renderDoses();
+  renderChecklist();
+  renderHistory();
+})();
+</script>
+
+</body>
+</html>
