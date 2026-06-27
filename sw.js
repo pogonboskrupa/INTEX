@@ -1,5 +1,5 @@
 // Service worker za "Moj bazen" — omogućava instalaciju i offline rad.
-const CACHE = "moj-bazen-v1";
+const CACHE = "moj-bazen-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,6 +21,67 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
+  );
+});
+
+/* ---------------- Podsjetnici u pozadini ---------------- */
+
+const IDB_NAME = "mojbazen", IDB_STORE = "kv";
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function idbGet(key) {
+  return idbOpen().then((db) => new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const rq = tx.objectStore(IDB_STORE).get(key);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  }));
+}
+function idbSet(key, val) {
+  return idbOpen().then((db) => new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  }));
+}
+
+async function checkAndNotify() {
+  const state = await idbGet("reminders").catch(() => null);
+  if (!state || !Array.isArray(state.tasks)) return;
+  const now = Date.now();
+  const due = state.tasks.filter((t) => t.dueAt <= now);
+  if (due.length === 0) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const last = await idbGet("notifyLast").catch(() => null);
+  if (last === today) return; // najviše jednom dnevno
+
+  const body = due.slice(0, 5).map((t) => `${t.icon} ${t.label}`).join("\n") + (due.length > 5 ? "\n…" : "");
+  await self.registration.showNotification(
+    `Bazen: ${due.length} ${due.length === 1 ? "zadatak čeka" : "zadataka čeka"}`,
+    { body, icon: "icon-192.png", badge: "icon-192.png", tag: "pool-reminder", renotify: true }
+  );
+  await idbSet("notifyLast", today).catch(() => {});
+}
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "pool-reminders") event.waitUntil(checkAndNotify());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow("./index.html");
+    })
   );
 });
 

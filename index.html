@@ -152,6 +152,14 @@
   .task-undo { flex-shrink:0; border:none; background:transparent; color:var(--slate-300); cursor:pointer; padding:6px; font-size:13px; }
   .task-undo:hover { color:var(--slate-500); }
 
+  .notify-btn { width:100%; margin:2px 0 10px; border:1px solid var(--cyan-600); background:white; color:var(--cyan-700);
+    font-size:13px; font-weight:500; font-family:inherit; padding:9px; border-radius:12px; cursor:pointer; }
+  .notify-btn:hover { background:var(--cyan-50); }
+  .notify-btn.on { background:var(--emerald-50); border-color:#a7f3d0; color:var(--emerald-700); }
+  .notify-btn.blocked { border-color:var(--slate-200); color:var(--slate-400); cursor:default; }
+  .due-banner { background:var(--rose-50); border:1px solid var(--rose-200); color:var(--rose-700);
+    border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; margin-bottom:12px; }
+
   /* Oprema */
   .eq-legend { display:flex; gap:8px; flex-wrap:wrap; }
   .eq-pill { font-size:11px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid; white-space:nowrap; }
@@ -246,6 +254,8 @@
         <span class="badge" id="taskBadge">0 na čekanju</span>
       </div>
       <p class="hint">Klikni „Uradio" kad obaviš zadatak — aplikacija pamti datum i računa za koliko dana ide sljedeći put.</p>
+      <button class="notify-btn" id="notifyBtn" onclick="toggleNotify()" style="display:none;">🔔 Uključi podsjetnike</button>
+      <div id="dueBanner" class="due-banner" style="display:none;"></div>
       <div id="taskRows"></div>
       <p class="footnote">Zadaci se sortiraju po hitnosti (najkasniji prvi).</p>
     </div>
@@ -575,6 +585,19 @@ function renderTasks() {
   const pending = rows.filter(r => r.st.due <= 0).length;
   document.getElementById("taskBadge").textContent =
     pending === 0 ? "Sve na vrijeme ✓" : `${pending} na čekanju`;
+
+  renderDueBanner(rows);
+  syncReminderState();
+}
+
+function renderDueBanner(rows) {
+  const banner = document.getElementById("dueBanner");
+  const due = rows.filter(r => r.st.due <= 0);
+  if (due.length === 0) { banner.style.display = "none"; return; }
+  banner.style.display = "block";
+  const names = due.slice(0, 4).map(r => `${r.item.icon} ${r.item.label}`).join(", ");
+  banner.innerHTML =
+    `⚠️ <b>${due.length}</b> ${due.length === 1 ? "zadatak" : "zadataka"} čeka na tebe: ${names}${due.length > 4 ? "…" : ""}`;
 }
 
 async function markTaskDone(id) {
@@ -616,6 +639,129 @@ async function toggleEquip(name) {
   else equipOwned[name] = true;
   await saveKey("pool:equipment:owned", equipOwned);
   renderEquipment();
+}
+
+/* ---------------- Podsjetnici / notifikacije ---------------- */
+
+// Mini IndexedDB helper — dijeljen sa service workerom da može podsjetiti i u pozadini.
+const IDB_NAME = "mojbazen", IDB_STORE = "kv";
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const rq = tx.objectStore(IDB_STORE).get(key);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+// Apsolutni trenutak kad zadatak dospijeva (ms). Nikad urađen => 0 (odmah dospio).
+function taskDueAt(item) {
+  const last = tasksDone[item.id];
+  if (!last) return 0;
+  const d = new Date(last); d.setHours(0, 0, 0, 0);
+  return d.getTime() + item.interval * DAY_MS;
+}
+
+async function syncReminderState() {
+  if (!("indexedDB" in window)) return;
+  const tasks = TASK_DEFS.map(t => ({ label: t.label, icon: t.icon, dueAt: taskDueAt(t) }));
+  try { await idbSet("reminders", { tasks, ts: Date.now() }); } catch {}
+}
+
+function notifySupported() {
+  return "Notification" in window && "serviceWorker" in navigator;
+}
+
+function updateNotifyBtn() {
+  const btn = document.getElementById("notifyBtn");
+  if (!notifySupported()) { btn.style.display = "none"; return; }
+  btn.style.display = "block";
+  btn.classList.remove("on", "blocked");
+  const p = Notification.permission;
+  if (p === "granted") { btn.textContent = "🔔 Podsjetnici uključeni — pošalji pregled"; btn.classList.add("on"); }
+  else if (p === "denied") { btn.textContent = "🔕 Podsjetnici blokirani (uključi u postavkama)"; btn.classList.add("blocked"); }
+  else { btn.textContent = "🔔 Uključi podsjetnike"; }
+}
+
+async function toggleNotify() {
+  if (!notifySupported() || Notification.permission === "denied") return;
+  if (Notification.permission === "default") {
+    const res = await Notification.requestPermission();
+    if (res === "granted") {
+      await registerPeriodicReminders();
+      await syncReminderState();
+      await notifyDue(true);
+    }
+  } else {
+    await notifyDue(true); // već dozvoljeno → pošalji trenutni pregled
+  }
+  updateNotifyBtn();
+}
+
+async function showNotif(title, body) {
+  const opts = { body, icon: "icon-192.png", badge: "icon-192.png", tag: "pool-reminder", renotify: true };
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.showNotification(title, opts);
+    else new Notification(title, opts);
+  } catch (e) { console.warn("notify failed", e); }
+}
+
+// Pošalji notifikaciju za zakašnjele zadatke. force = ručno (zaobiđe dnevni throttle).
+async function notifyDue(force) {
+  if (!notifySupported() || Notification.permission !== "granted") return;
+  const now = Date.now();
+  const due = TASK_DEFS.filter(t => taskDueAt(t) <= now);
+  if (due.length === 0) {
+    if (force) await showNotif("Bazen je u redu ✅", "Trenutno nijedan zadatak ne kasni.");
+    return;
+  }
+  const today = todayISO();
+  if (!force) {
+    const last = await idbGet("notifyLast").catch(() => null);
+    if (last === today) return; // već javljeno danas
+  }
+  const body = due.slice(0, 5).map(t => `${t.icon} ${t.label}`).join("\n") + (due.length > 5 ? "\n…" : "");
+  await showNotif(`Bazen: ${due.length} ${due.length === 1 ? "zadatak čeka" : "zadataka čeka"}`, body);
+  try { await idbSet("notifyLast", today); } catch {}
+}
+
+async function registerPeriodicReminders() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg || !("periodicSync" in reg)) return; // npr. iOS — koristi se podsjetnik pri otvaranju
+    const status = await navigator.permissions.query({ name: "periodic-background-sync" });
+    if (status.state === "granted") {
+      await reg.periodicSync.register("pool-reminders", { minInterval: 24 * 60 * 60 * 1000 });
+    }
+  } catch (e) { /* nije podržano */ }
+}
+
+async function initReminders() {
+  updateNotifyBtn();
+  await syncReminderState();
+  if (notifySupported() && Notification.permission === "granted") {
+    await registerPeriodicReminders();
+    await notifyDue(false); // podsjeti pri otvaranju (najviše 1x dnevno)
+  }
 }
 
 function renderStartup() {
@@ -768,6 +914,7 @@ function switchTab(tab) {
   renderStartupDoses();
   renderHistory();
   updateStartupVisibility();
+  await initReminders();
 
   // Pri prvom punjenju (prazna historija) otvori odmah tab puštanja u rad.
   if (history.length === 0) switchTab("startup");
