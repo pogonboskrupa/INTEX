@@ -196,12 +196,12 @@
   .temp-suggest button { border:none; background:transparent; color:var(--cyan-700); text-decoration:underline;
     font-size:11px; font-family:inherit; cursor:pointer; padding:0; font-weight:600; }
 
-  /* Vodič kroz sredstva */
-  #chemGuide > summary { font-size:14px; font-weight:600; color:var(--slate-700); cursor:pointer; list-style:none;
+  /* Sklopive sekcije (vodiči) */
+  .guide > summary { font-size:14px; font-weight:600; color:var(--slate-700); cursor:pointer; list-style:none;
     display:flex; align-items:center; gap:6px; }
-  #chemGuide > summary::-webkit-details-marker { display:none; }
-  #chemGuide > summary::after { content:"▾"; margin-left:auto; color:var(--slate-400); transition:transform .2s; }
-  #chemGuide[open] > summary::after { transform:rotate(180deg); }
+  .guide > summary::-webkit-details-marker { display:none; }
+  .guide > summary::after { content:"▾"; margin-left:auto; color:var(--slate-400); transition:transform .2s; }
+  .guide[open] > summary::after { transform:rotate(180deg); }
   #chemList { margin-top:12px; }
   .chem { border:1px solid var(--slate-100); border-radius:12px; padding:11px 12px; margin-bottom:10px; background:var(--slate-50); }
   .chem-name { font-size:13px; font-weight:600; color:var(--slate-800); display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
@@ -310,7 +310,7 @@
     </div>
 
     <div class="card">
-      <details id="chemGuide">
+      <details id="chemGuide" class="guide">
         <summary>📚 Vodič kroz sredstva — čemu služi, koliko i kada</summary>
         <div id="chemList"></div>
         <div class="warn-box" style="margin-top:14px;">
@@ -340,6 +340,28 @@
       <div id="dueBanner" class="due-banner" style="display:none;"></div>
       <div id="taskRows"></div>
       <p class="footnote">Zadaci se sortiraju po hitnosti (najkasniji prvi).</p>
+    </div>
+
+    <div class="card">
+      <details id="cleanGuide" class="guide">
+        <summary>🤖 Robot ZX300 ili 🥅 mrežica — kad šta?</summary>
+        <div style="margin-top:12px;">
+          <div class="chem">
+            <div class="chem-name">🥅 Mrežica (skimmer na štapu) — <span style="color:var(--cyan-700)">površina</span></div>
+            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> plutajuću nečistoću — lišće, insekti, polen, trava, dok još pluta.</span></div>
+            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> svaki dan / čim primijetiš, prije nego potone. Brzo, ručno, pumpa ne mora raditi.</span></div>
+          </div>
+          <div class="chem">
+            <div class="chem-name">🤖 Robot ZX300 — <span style="color:var(--cyan-700)">dno i niži zidovi</span></div>
+            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> nečistoću koja je pala na dno — pijesak, sitni talog, istaloženo lišće. Sam obilazi dno.</span></div>
+            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> 2× sedmično ili po potrebi (vidljiv talog na dnu), <b>uvijek dok pumpa radi</b>.</span></div>
+            <div class="chem-line"><span class="cl-i">⚠️</span><span><b>Uslov:</b> dobar protok — prije puštanja očisti skimmer košaru i po potrebi uradi backwash. Slab protok = robot slabo vuče i zastajkuje.</span></div>
+          </div>
+          <div class="warn-box" style="margin-top:4px;">
+            🔁 <span><b>Redoslijed:</b> prvo pokupi površinu mrežicom (da ne potone), pa pusti ZX300 za dno — robot ne skuplja ono što pluta. Nakon ciklusa izvuci ga, isperi i ne ostavljaj ga nepotrebno na suncu u vodi.</span>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -412,7 +434,7 @@ const TASK_DEFS = [
   { id: "test",      icon: "🧪", label: "Test vode (klor, pH, TA)", interval: 1,   freq: "Dnevno" },
   { id: "cover",     icon: "☀️", label: "Solarni pokrivač (stavi/skini)", interval: 1,   freq: "Dnevno" },
   { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", interval: 2,   freq: "Svaki 2. dan" },
-  { id: "vacuum",    icon: "🌀", label: "Usisavanje dna bazena", interval: 4,   freq: "2x sedmično" },
+  { id: "vacuum",    icon: "🤖", label: "Usisavanje dna (robot ZX300)", interval: 4,   freq: "2x sedmično, dok pumpa radi" },
   { id: "walls",     icon: "🧽", label: "Četkanje zidova i linije vode", interval: 7,   freq: "Sedmično" },
   { id: "backwash",  icon: "🔄", label: "Backwash filtera", interval: 7,   freq: "Sedmično / kad manometar +0.2–0.3 bar" },
   { id: "shock",     icon: "⚡", label: "Šok hloriranje", interval: 10,  freq: "Sedmično / po potrebi" },
@@ -447,9 +469,9 @@ const EQUIPMENT = [
   { icon:"🧽", name:"Četka za zidove i dno", level:"rec",
     rec:"Četka širine ~45 cm s nastavkom za štap.",
     desc:"Skida sluzavi film i alge sa zidova i linije vode da se ne nakupljaju." },
-  { icon:"🌀", name:"Usisivač za dno (vacuum)", level:"rec",
-    rec:"Ručni vacuum + crijevo, ili automatski čistač.",
-    desc:"Skuplja talog, pijesak i sitne čestice koje padnu na dno bazena." },
+  { icon:"🤖", name:"Robot ZX300 (auto čistač dna)", level:"rec",
+    rec:"Imaš ga — spaja se na pumpu, čisti dno i niže zidove.",
+    desc:"Sam obilazi i skuplja talog s dna dok pumpa radi. Za površinu i dalje koristi mrežicu; vidi vodič Robot ili mrežica u tabu Njega." },
   { icon:"📏", name:"Teleskopski štap", level:"rec",
     rec:"Aluminijski, izvlači se do ~3–4 m.",
     desc:"Univerzalni nosač za mrežicu, četku i usisivač." },
