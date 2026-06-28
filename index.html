@@ -240,6 +240,20 @@
     border-radius:12px; padding:11px 13px; font-size:13px; line-height:1.5; }
   .calc-result b { font-size:18px; }
 
+  /* LSI balans */
+  .lsi-main { display:flex; align-items:center; gap:14px; padding:6px 0 4px; }
+  .lsi-val { font-size:30px; font-weight:700; }
+  .lsi-val.ok { color:var(--emerald-700); } .lsi-val.low { color:var(--rose-700); } .lsi-val.high { color:var(--amber-700); }
+  .lsi-note { font-size:12px; color:var(--slate-500); line-height:1.5; }
+  .lsi-missing { font-size:12px; color:var(--slate-400); }
+
+  /* Postavke */
+  .set-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0;
+    border-bottom:1px solid var(--slate-100); }
+  .set-row label { font-size:13px; color:var(--slate-700); }
+  .set-row input { width:120px; text-align:right; border:1px solid var(--slate-200); border-radius:10px;
+    padding:8px 10px; font-size:14px; font-family:inherit; }
+
   /* Sklopive sekcije (vodiči) */
   .guide > summary { font-size:14px; font-weight:600; color:var(--slate-700); cursor:pointer; list-style:none;
     display:flex; align-items:center; gap:6px; }
@@ -309,6 +323,7 @@
     <button class="tab-btn" data-tab="oprema" onclick="switchTab('oprema')">🧰 Oprema</button>
     <button class="tab-btn" data-tab="vrijeme" onclick="switchTab('vrijeme')">🌤️ Vrijeme</button>
     <button class="tab-btn" data-tab="historija" onclick="switchTab('historija')">🕒 Log</button>
+    <button class="tab-btn" data-tab="postavke" onclick="switchTab('postavke')">⚙️ Postavke</button>
   </div>
 </div>
 
@@ -365,6 +380,12 @@
       <div class="warn-box">
         ⚠️ <span>Doze su orijentacione, računate za <span id="warnVol"></span> m³ vode po standardnim formulama. Uvijek provjeri uputstvo na pakovanju koje koristiš i nikad ne mješaj klor i pH proizvode direktno.</span>
       </div>
+    </div>
+
+    <div class="card" id="lsiCard">
+      <h2 style="margin:0 0 4px;">⚖️ Balans vode (LSI)</h2>
+      <p class="hint">Langelierov indeks — je li voda korozivna ili sklona kamencu.</p>
+      <div id="lsiBody"></div>
     </div>
 
     <div class="card">
@@ -440,6 +461,18 @@
         </div>
       </details>
     </div>
+
+    <div class="card">
+      <details id="winterGuide" class="guide">
+        <summary>❄️ Zatvaranje sezone (prezimljavanje)</summary>
+        <div class="checklist-header" style="margin-top:12px;">
+          <span class="badge" id="winterBadge">0/8</span>
+          <button class="clear-btn" onclick="resetWinter()">↺ Resetuj</button>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="winterProgress"></div></div>
+        <div id="winterRows"></div>
+      </details>
+    </div>
   </div>
 
   <div class="panel" id="panel-oprema">
@@ -473,6 +506,26 @@
     </div>
   </div>
 
+  <div class="panel" id="panel-postavke">
+    <div class="card">
+      <h2 style="margin:0 0 4px;">🏊 Profil bazena</h2>
+      <p class="hint">Zapremina i pumpa koriste se za sve proračune doza i cirkulacije.</p>
+      <div class="set-row"><label>Zapremina vode (litara)</label><input id="setVol" type="number" inputmode="numeric"></div>
+      <div class="set-row"><label>Protok pumpe (l/h)</label><input id="setPump" type="number" inputmode="numeric"></div>
+      <button class="save-btn" onclick="saveProfile()">💾 Sačuvaj profil</button>
+      <div id="profileMsg" class="hint" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 4px;">💾 Sigurnosna kopija</h2>
+      <p class="hint">Podaci se čuvaju samo na ovom uređaju. Napravi kopiju da ih ne izgubiš pri promjeni telefona.</p>
+      <button class="save-btn" style="background:var(--cyan-600);" onclick="exportData()">⬇️ Izvezi sve (.json)</button>
+      <button class="save-btn" style="background:var(--slate-700); margin-top:8px;" onclick="document.getElementById('importFile').click()">⬆️ Uvezi iz fajla</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
+      <div id="backupMsg" class="hint" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
   <div class="panel" id="panel-historija">
     <div class="card" id="trendsCard" style="display:none;">
       <h2 style="margin:0 0 4px;">📈 Trendovi</h2>
@@ -493,9 +546,9 @@
 <div id="toast" class="toast"></div>
 
 <script>
-const POOL_VOLUME_L = 17203;
-const POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
-const PUMP_FLOW_LH = 5700; // Intex SX1500 (~1.500 gal/h ≈ 5.700 l/h)
+let POOL_VOLUME_L = 17203;
+let POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
+let PUMP_FLOW_LH = 5700; // Intex SX1500 (~1.500 gal/h ≈ 5.700 l/h)
 
 // Bosanska Krupa — za vremensku prognozu (Open-Meteo, bez API ključa)
 const WX_LAT = 44.8833, WX_LON = 16.1517, WX_PLACE = "Bosanska Krupa";
@@ -506,6 +559,7 @@ const TARGETS = {
   ph:           { min: 7.2, max: 7.6, unit: "", label: "pH vrijednost" },
   alkalinity:   { min: 80, max: 120, unit: "mg/l", label: "Alkalinitet (TA)" },
   cya:          { min: 30, max: 50, unit: "mg/l", label: "Stabilizator (CYA)" },
+  calcium:      { min: 150, max: 250, unit: "mg/l", label: "Tvrdoća vode (Ca)" },
   temperature:  { min: 26, max: 30, unit: "°C", label: "Temperatura vode",
                   lowLabel: "Hladno", highLabel: "Toplo", okLabel: "Ugodno" },
 };
@@ -619,11 +673,23 @@ function calcCyaDose(current, target) {
   return Math.round(diff * POOL_VOLUME_M3 * 10) / 10;
 }
 
-let readings = { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" };
+let readings = { freeChlorine: "", ph: "", alkalinity: "", cya: "", calcium: "", temperature: "" };
 let tasksDone = {};   // { taskId: ISO datum zadnjeg izvršenja }
 let equipOwned = {};  // { equipmentName: true }
 let startup = {};
+let winterize = {};   // { stepId: true }
 let history = [];
+
+const WINTERIZE_DEFS = [
+  { id:"balance", icon:"⚗️", label:"Izbalansiraj vodu prije zatvaranja", note:"pH 7.2–7.6, alkalinitet i klor u redu — sprječava mrlje i alge preko zime." },
+  { id:"clean",   icon:"🧽", label:"Temeljito očisti bazen", note:"Skimmer košarica, dno (ZX300) i zidovi — da ne trune nečistoća." },
+  { id:"shockw",  icon:"⚡", label:"Šok hloriranje + algicid", note:"Zadnji udarni tretman da voda preko zime ne pozeleni." },
+  { id:"lower",   icon:"💧", label:"Spusti nivo vode ispod skimmera/priključaka", note:"Ili po uputstvu; sprječava pucanje od leda u priključcima." },
+  { id:"pump",    icon:"⚙️", label:"Isključi i ispusti pumpu i filter", note:"Backwash, isperi pijesak, ispusti svu vodu iz pumpe i crijeva (mraz!)." },
+  { id:"hoses",   icon:"🔌", label:"Odspoji i osuši crijeva i opremu", note:"Sva voda van — zaostala voda se na mrazu širi i puca." },
+  { id:"cover",   icon:"❄️", label:"Pokrij bazen zimskim pokrivačem", note:"Ako voda ostaje; dodaj sredstvo za prezimljavanje (winterizer)." },
+  { id:"store",   icon:"📦", label:"Spremi opremu na suho", note:"Ako sklapaš bazen: potpuno ga osuši prije pakovanja da ne uhvati plijesan." },
+];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -769,6 +835,7 @@ function renderDoses() {
     </div>
   `).join("");
 
+  if (typeof renderLSI === "function") renderLSI();
   if (typeof renderDashboard === "function") renderDashboard();
 }
 
@@ -1357,6 +1424,7 @@ function renderHistory() {
     if (entry.ph) vals.push(`pH ${entry.ph}`);
     if (entry.alkalinity) vals.push(`TA ${entry.alkalinity}`);
     if (entry.cya) vals.push(`CYA ${entry.cya}`);
+    if (entry.calcium) vals.push(`Ca ${entry.calcium}`);
     if (entry.temperature) vals.push(`${entry.temperature}°C`);
     return `
       <div class="hist-item">
@@ -1458,7 +1526,14 @@ function renderDashboard() {
     when.textContent = last
       ? "Zadnje sačuvano: " + new Date(last.date).toLocaleDateString("bs-BA", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })
       : "Trenutne vrijednosti";
-    wcard.innerHTML = keys.map(k => {
+    const lsi = computeLSI();
+    let lsiHtml = "";
+    if (lsi != null) {
+      const v = lsiVerdict(lsi);
+      lsiHtml = `<div class="dash-w-row"><div class="dw-l">⚖️ Balans (LSI)</div>
+        <div style="text-align:right"><span class="dw-v">${lsi > 0 ? "+" : ""}${lsi.toFixed(2)}</span> <span class="pill ${v.cls}">${v.txt}</span></div></div>`;
+    }
+    wcard.innerHTML = lsiHtml + keys.map(k => {
       const t = TARGETS[k], raw = readings[k];
       if (raw === "" || raw == null) return "";
       const v = parseFloat(raw);
@@ -1494,6 +1569,7 @@ function renderTrends() {
     { key:"freeChlorine", color:"#0891b2", name:"Klor (mg/l)" },
     { key:"ph",           color:"#6d28d9", name:"pH" },
     { key:"alkalinity",   color:"#0f766e", name:"Alkalinitet (mg/l)" },
+    { key:"calcium",      color:"#475569", name:"Tvrdoća Ca (mg/l)" },
     { key:"temperature",  color:"#b45309", name:"Temperatura (°C)" },
   ];
   let html = "";
@@ -1572,18 +1648,169 @@ function calcUpdate() {
     <br><span style="font-size:11px;opacity:.8">Za ${POOL_VOLUME_M3.toFixed(1)} m³, od ${cur} do ${tgt}. Doziraj postupno pa ponovo izmjeri.</span>`;
 }
 
+/* ---------------- Balans vode (LSI) ---------------- */
+function tempFactorLSI(c) {
+  const tbl = [[0,0.0],[2.8,0.1],[7.8,0.2],[11.7,0.3],[15.6,0.4],[18.9,0.5],[23.9,0.6],[28.9,0.7],[34.4,0.8],[40.6,0.9],[53.3,1.0]];
+  if (c <= tbl[0][0]) return 0;
+  if (c >= tbl[tbl.length-1][0]) return 1.0;
+  for (let i = 1; i < tbl.length; i++) {
+    if (c <= tbl[i][0]) { const [x0,y0] = tbl[i-1], [x1,y1] = tbl[i]; return y0 + (y1-y0)*(c-x0)/(x1-x0); }
+  }
+  return 1.0;
+}
+function computeLSI() {
+  const ph = parseFloat(readings.ph), ta = parseFloat(readings.alkalinity),
+        temp = parseFloat(readings.temperature), ch = parseFloat(readings.calcium);
+  if ([ph, ta, temp, ch].some(v => isNaN(v)) || ta <= 0 || ch <= 0) return null;
+  const lsi = ph + tempFactorLSI(temp) + (Math.log10(ch) - 0.4) + Math.log10(ta) - 12.1;
+  return Math.round(lsi * 100) / 100;
+}
+function lsiVerdict(lsi) {
+  if (lsi < -0.3) return { cls:"low",  txt:"Korozivno",       note:"Voda je agresivna — nagriza opremu i izvlači metale. Podigni pH, alkalinitet ili tvrdoću." };
+  if (lsi >  0.3) return { cls:"high", txt:"Sklono kamencu",  note:"Voda taloži kamenac i muti se. Snizi pH i/ili alkalinitet." };
+  return { cls:"ok", txt:"Balansirano", note:"Voda je u ravnoteži — ni korozivna ni sklona kamencu." };
+}
+function renderLSI() {
+  const body = document.getElementById("lsiBody");
+  if (!body) return;
+  const lsi = computeLSI();
+  if (lsi == null) {
+    const need = [];
+    if (isNaN(parseFloat(readings.ph))) need.push("pH");
+    if (isNaN(parseFloat(readings.alkalinity))) need.push("alkalinitet");
+    if (isNaN(parseFloat(readings.calcium))) need.push("tvrdoću (Ca)");
+    if (isNaN(parseFloat(readings.temperature))) need.push("temperaturu");
+    body.innerHTML = `<div class="lsi-missing">Unesi još: ${need.join(", ")} (u tabu Hemija) za izračun balansa.</div>`;
+    return;
+  }
+  const v = lsiVerdict(lsi);
+  body.innerHTML = `
+    <div class="lsi-main">
+      <div class="lsi-val ${v.cls}">${lsi > 0 ? "+" : ""}${lsi.toFixed(2)}</div>
+      <div><span class="pill ${v.cls}">${v.txt}</span><div class="lsi-note" style="margin-top:4px;">${v.note}</div></div>
+    </div>`;
+}
+
+/* ---------------- Prezimljavanje ---------------- */
+function renderWinter() {
+  const wrap = document.getElementById("winterRows");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  WINTERIZE_DEFS.forEach((item, i) => {
+    const done = !!winterize[item.id];
+    const btn = document.createElement("button");
+    btn.className = "check-item" + (done ? " done" : "");
+    btn.innerHTML = `
+      <span class="check-icon">${done ? "✅" : "⬜️"}</span>
+      <div>
+        <div class="check-label">${i + 1}. ${item.icon} ${item.label}</div>
+        <div class="check-freq">${item.note}</div>
+      </div>`;
+    btn.addEventListener("click", () => {
+      winterize[item.id] = !winterize[item.id];
+      saveKey("pool:winterize:state", winterize);
+      renderWinter();
+    });
+    wrap.appendChild(btn);
+  });
+  const done = Object.values(winterize).filter(Boolean).length;
+  document.getElementById("winterBadge").textContent = `${done}/${WINTERIZE_DEFS.length}`;
+  document.getElementById("winterProgress").style.width = Math.round((done / WINTERIZE_DEFS.length) * 100) + "%";
+}
+async function resetWinter() {
+  if (!confirm("Resetovati checklist prezimljavanja?")) return;
+  winterize = {};
+  await saveKey("pool:winterize:state", winterize);
+  renderWinter();
+}
+
+/* ---------------- Profil bazena ---------------- */
+function applyProfile() {
+  POOL_VOLUME_M3 = POOL_VOLUME_L / 1000;
+  renderStaticInfo();
+  renderDoses();
+  renderChemicals();
+  renderStartupDoses();
+  if (typeof calcUpdate === "function") calcUpdate();
+}
+function fillProfileInputs() {
+  const v = document.getElementById("setVol"), p = document.getElementById("setPump");
+  if (v) v.value = POOL_VOLUME_L;
+  if (p) p.value = PUMP_FLOW_LH;
+}
+async function saveProfile() {
+  const v = parseInt(document.getElementById("setVol").value, 10);
+  const p = parseInt(document.getElementById("setPump").value, 10);
+  const msg = document.getElementById("profileMsg");
+  if (isNaN(v) || v < 500 || isNaN(p) || p < 100) {
+    msg.textContent = "Unesi ispravne brojeve (zapremina ≥ 500 l, protok ≥ 100 l/h).";
+    return;
+  }
+  POOL_VOLUME_L = v; PUMP_FLOW_LH = p;
+  await saveKey("pool:profile", { volumeL: v, pumpLh: p });
+  applyProfile();
+  msg.textContent = "✓ Profil sačuvan — svi proračuni ažurirani.";
+  setTimeout(() => { msg.textContent = ""; }, 2500);
+}
+
+/* ---------------- Backup (izvoz / uvoz) ---------------- */
+const BACKUP_KEYS = [
+  "pool:readings", "pool:history", "pool:tasks:done", "pool:equipment:owned",
+  "pool:startup:state", "pool:winterize:state", "pool:profile", "pool:weather",
+];
+async function exportData() {
+  const data = {};
+  for (const k of BACKUP_KEYS) data[k] = await loadKey(k, null);
+  const blob = new Blob([JSON.stringify({ app: "moj-bazen", version: 1, exportedAt: new Date().toISOString(), data }, null, 2)],
+    { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `moj-bazen-backup-${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  document.getElementById("backupMsg").textContent = "✓ Kopija preuzeta.";
+}
+async function importData(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  const msg = document.getElementById("backupMsg");
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const data = parsed && parsed.data ? parsed.data : parsed;
+    if (!data || typeof data !== "object") throw new Error("format");
+    if (!confirm("Uvoz će zamijeniti trenutne podatke ovog uređaja. Nastaviti?")) { ev.target.value = ""; return; }
+    for (const k of BACKUP_KEYS) {
+      if (k in data && data[k] != null) await saveKey(k, data[k]);
+    }
+    msg.textContent = "✓ Podaci uvezeni — osvježavam…";
+    setTimeout(() => location.reload(), 700);
+  } catch (e) {
+    msg.textContent = "Greška: fajl nije ispravan backup.";
+  } finally {
+    ev.target.value = "";
+  }
+}
+
 function switchTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tab));
 }
 
 (async function init() {
-  readings = await loadKey("pool:readings", { freeChlorine: "", ph: "", alkalinity: "", cya: "", temperature: "" });
+  readings = await loadKey("pool:readings", { freeChlorine: "", ph: "", alkalinity: "", cya: "", calcium: "", temperature: "" });
   history = await loadKey("pool:history", []);
   startup = await loadKey("pool:startup:state", {});
   tasksDone = await loadKey("pool:tasks:done", {});
   equipOwned = await loadKey("pool:equipment:owned", {});
+  winterize = await loadKey("pool:winterize:state", {});
   weather = await loadKey("pool:weather", null);
+
+  const profile = await loadKey("pool:profile", null);
+  if (profile && profile.volumeL) { POOL_VOLUME_L = profile.volumeL; POOL_VOLUME_M3 = POOL_VOLUME_L / 1000; }
+  if (profile && profile.pumpLh) { PUMP_FLOW_LH = profile.pumpLh; }
+  fillProfileInputs();
 
   renderStaticInfo();
   renderParamRows();
@@ -1593,6 +1820,7 @@ function switchTab(tab) {
   renderEquipment();
   renderStartup();
   renderStartupDoses();
+  renderWinter();
   renderHistory();
   renderDashboard();
   initCalc();
