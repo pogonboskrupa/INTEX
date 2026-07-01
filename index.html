@@ -442,7 +442,7 @@
 
     <div class="card">
       <details id="cleanGuide" class="guide">
-        <summary>🏊 Skimmer ili 🤖 robot ZX300 — kad šta?</summary>
+        <summary>🏊 Skimmer i čišćenje dna</summary>
         <div style="margin-top:12px;">
           <div class="chem">
             <div class="chem-name">🏊 Skimmer (kači se na rub) — <span style="color:var(--cyan-700)">površina</span></div>
@@ -450,13 +450,12 @@
             <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> neka radi <b>kad god pumpa radi</b> (stalno skida površinu). Ti samo <b>prazni košaricu dnevno</b>, pogotovo po vjetru i opadanju lišća.</span></div>
           </div>
           <div class="chem">
-            <div class="chem-name">🤖 Robot ZX300 — <span style="color:var(--cyan-700)">dno i niži zidovi</span></div>
-            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> nečistoću koja je pala na dno — pijesak, sitni talog, istaloženo lišće. Sam obilazi dno.</span></div>
-            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> 2× sedmično ili po potrebi (vidljiv talog na dnu), <b>uvijek dok pumpa radi</b>.</span></div>
-            <div class="chem-line"><span class="cl-i">⚠️</span><span><b>Uslov:</b> dobar protok — prije puštanja isprazni skimmer košaricu i po potrebi uradi backwash. Slab protok = robot slabo vuče i zastajkuje.</span></div>
+            <div class="chem-name">🌀 Ručni usisivač + četka — <span style="color:var(--cyan-700)">dno i zidovi</span></div>
+            <div class="chem-line"><span class="cl-i">🎯</span><span><b>Za:</b> talog, pijesak i istaloženo lišće na dnu; naslage na zidovima i liniji vode.</span></div>
+            <div class="chem-line"><span class="cl-i">🗓️</span><span><b>Kada:</b> 1–2× sedmično ili po potrebi — polako usisaj dno i očetkaj zidove. Prije usisavanja isprazni skimmer košaricu radi boljeg protoka.</span></div>
           </div>
           <div class="warn-box" style="margin-top:4px;">
-            🔁 <span><b>Dijele isti priključak:</b> i skimmer i ZX300 spajaju se na usis pumpe, pa rade <b>naizmjenično</b> — kad puštaš robota za dno, prebaciš crijevo sa skimmera na robota, a poslije vratiš skimmer. Za brzo skidanje krupnog lišća zgodna je i ručna mrežica na štapu.</span>
+            🥅 <span>Za brzo skidanje krupnog lišća s površine zgodna je i ručna mrežica na štapu.</span>
           </div>
         </div>
       </details>
@@ -570,7 +569,7 @@ const TASK_DEFS = [
   { id: "test",      icon: "🧪", label: "Test vode (klor, pH, TA)", interval: 1,   freq: "Dnevno" },
   { id: "cover",     icon: "☀️", label: "Solarni pokrivač (stavi/skini)", interval: 1,   freq: "Dnevno" },
   { id: "pump",      icon: "⚙️", label: "Provjera pritiska i rada pumpe", interval: 2,   freq: "Svaki 2. dan" },
-  { id: "vacuum",    icon: "🤖", label: "Usisavanje dna (robot ZX300)", interval: 4,   freq: "2x sedmično, dok pumpa radi" },
+  { id: "vacuum",    icon: "🌀", label: "Usisavanje/četkanje dna", interval: 4,   freq: "1–2x sedmično" },
   { id: "walls",     icon: "🧽", label: "Četkanje zidova i linije vode", interval: 7,   freq: "Sedmično" },
   { id: "backwash",  icon: "🔄", label: "Backwash filtera", interval: 7,   freq: "Sedmično / kad manometar +0.2–0.3 bar" },
   { id: "shock",     icon: "⚡", label: "Šok hloriranje", interval: 10,  freq: "Sedmično / po potrebi" },
@@ -600,17 +599,17 @@ const EQUIPMENT = [
     rec:"Obična soda bikarbona; podiže TA u 80–120 mg/l.",
     desc:"Stabilizuje pH — bez dovoljno TA pH zna naglo skakati gore-dolje." },
   { icon:"🏊", name:"Skimmer (kači se na rub bazena)", level:"must",
-    rec:"Spaja se na usis pumpe; dijeli priključak sa ZX300.",
-    desc:"Dok pumpa radi, sam vuče plutajuću nečistoću s površine u svoju košaricu. Prazni košaricu dnevno. Detalji u vodiču Skimmer ili robot u tabu Njega." },
+    rec:"Spaja se na usis pumpe; skida površinu dok pumpa radi.",
+    desc:"Dok pumpa radi, sam vuče plutajuću nečistoću s površine u svoju košaricu. Prazni košaricu dnevno. Detalji u vodiču Skimmer i čišćenje dna u tabu Njega." },
   { icon:"🥅", name:"Mrežica na štapu (ručno)", level:"rec",
     rec:"Fina mrežica + teleskopski štap.",
     desc:"Za brzo ručno skidanje krupnog lišća i insekata kad ne želiš čekati skimmer." },
   { icon:"🧽", name:"Četka za zidove i dno", level:"rec",
     rec:"Četka širine ~45 cm s nastavkom za štap.",
     desc:"Skida sluzavi film i alge sa zidova i linije vode da se ne nakupljaju." },
-  { icon:"🤖", name:"Robot ZX300 (auto čistač dna)", level:"rec",
-    rec:"Imaš ga — spaja se na pumpu, čisti dno i niže zidove.",
-    desc:"Sam obilazi i skuplja talog s dna dok pumpa radi. Za površinu i dalje koristi mrežicu; vidi vodič Robot ili mrežica u tabu Njega." },
+  { icon:"🌀", name:"Ručni usisivač za dno (vacuum)", level:"rec",
+    rec:"Vacuum glava + crijevo na teleskopskom štapu.",
+    desc:"Ručno usisavanje taloga i pijeska s dna; spaja se na skimmer/usis pumpe. Polako prelazi dno dok pumpa radi." },
   { icon:"📏", name:"Teleskopski štap", level:"rec",
     rec:"Aluminijski, izvlači se do ~3–4 m.",
     desc:"Univerzalni nosač za mrežicu, četku i usisivač." },
@@ -682,7 +681,7 @@ let history = [];
 
 const WINTERIZE_DEFS = [
   { id:"balance", icon:"⚗️", label:"Izbalansiraj vodu prije zatvaranja", note:"pH 7.2–7.6, alkalinitet i klor u redu — sprječava mrlje i alge preko zime." },
-  { id:"clean",   icon:"🧽", label:"Temeljito očisti bazen", note:"Skimmer košarica, dno (ZX300) i zidovi — da ne trune nečistoća." },
+  { id:"clean",   icon:"🧽", label:"Temeljito očisti bazen", note:"Skimmer košarica, dno (usisavanje) i zidovi — da ne trune nečistoća." },
   { id:"shockw",  icon:"⚡", label:"Šok hloriranje + algicid", note:"Zadnji udarni tretman da voda preko zime ne pozeleni." },
   { id:"lower",   icon:"💧", label:"Spusti nivo vode ispod skimmera/priključaka", note:"Ili po uputstvu; sprječava pucanje od leda u priključcima." },
   { id:"pump",    icon:"⚙️", label:"Isključi i ispusti pumpu i filter", note:"Backwash, isperi pijesak, ispusti svu vodu iz pumpe i crijeva (mraz!)." },
